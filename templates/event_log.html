@@ -1,0 +1,4 @@
+{% extends 'base.html' %}{% block title %}Event Log{% endblock %}{% block content %}
+<div class="page-head"><div><b>EVENT LOG</b><span>Detection, tracking, alignment, system and AI controller events.</span></div><a class="btn btn-outline-primary" href="/export.csv">Export Telemetry</a></div>
+<section class="panel"><div class="filter-row"><input id="eventSearch" placeholder="Search events..." oninput="loadEvents()"><select id="eventCategory" onchange="loadEvents()"><option>ALL</option><option>DETECTION</option><option>TRACKING</option><option>ALIGNMENT</option><option>SYSTEM</option><option>AI</option></select></div><div id="eventList"></div></section>
+{% endblock %}{% block scripts %}<script>initEvents();</script>{% endblock %}

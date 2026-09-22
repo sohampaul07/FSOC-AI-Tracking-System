@@ -1,0 +1,4 @@
+{% extends 'base.html' %}{% block title %}Session History{% endblock %}{% block content %}
+<div class="page-head"><div><b>ALIGNMENT SESSION HISTORY</b><span>Every auto/manual session is retained in SQLite for traceability.</span></div><a class="btn btn-primary" href="/live-tracking">＋ New Session</a></div>
+<section class="panel"><div class="panel-head"><h2>Stored Sessions</h2><a href="/export.csv">Export CSV →</a></div><div id="sessionHistory"></div></section>
+{% endblock %}{% block scripts %}<script>initReports();</script>{% endblock %}

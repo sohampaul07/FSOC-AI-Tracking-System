@@ -1,0 +1,21 @@
+Flask
+Flask-SQLAlchemy
+SQLAlchemy
+reportlab
+
+# --- Live AI camera pipeline ---
+Flask-SocketIO
+python-socketio
+opencv-python
+numpy
+
+# --- Optional: only needed if you want the YOLO/PyTorch detector path.
+# The app runs and demos fully on OpenCV alone without these — see
+# README.md > "Live AI Camera" for details. These are large downloads
+# (PyTorch is ~1-2GB), so install them only if you have time/bandwidth
+# before your demo, or if you've trained a custom FSOC-terminal model.
+# ultralytics
+# torch
+
+# Required for YOLO + ByteTrack in Live AI Camera
+ultralytics

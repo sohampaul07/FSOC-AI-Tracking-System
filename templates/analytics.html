@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block title %}Analytics & Insights{% endblock %}
+{% block content %}
+<style>
+body:has(.analytics-page){background:#020b16;color:#d9e7f5}
+body:has(.analytics-page) .main{background:#020b16;min-height:100vh}
+body:has(.analytics-page) .topbar{background:#04101d;border-bottom:1px solid #12304a;color:#dcecff}
+body:has(.analytics-page) .topbar small{color:#6f8ba6}
+.analytics-page{padding:18px 20px 34px;background:radial-gradient(circle at 65% 8%,rgba(12,71,115,.18),transparent 34%),#020b16;min-height:calc(100vh - 70px)}
+.ax-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:16px}.ax-title{display:flex;gap:13px;align-items:center}.ax-icon{width:44px;height:44px;border-radius:10px;background:#06365f;border:1px solid #1476bd;display:grid;place-items:center;font-size:24px;color:#55c8ff;box-shadow:0 0 24px rgba(28,160,255,.16)}.ax-title h2{margin:0;font-size:22px;color:#eef8ff}.ax-title p{margin:3px 0 0;color:#6f91ad;font-size:11px}.ax-tools{display:flex;gap:8px}.ax-tools select,.ax-tools a{background:#071b2d;border:1px solid #17415f;color:#cce7fa;border-radius:7px;padding:8px 12px;font-size:12px;text-decoration:none}
+.ax-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:9px}.ax-kpi{background:linear-gradient(145deg,#071b2d,#061524);border:1px solid #12466a;border-radius:7px;padding:12px 11px;min-height:83px;box-shadow:inset 0 0 18px rgba(20,126,190,.03)}.ax-kpi small{display:block;color:#7394ae;font-size:9px;text-transform:uppercase;letter-spacing:.5px}.ax-kpi strong{display:block;color:#f0f8ff;font-size:21px;margin:6px 0 2px}.ax-kpi span{font-size:9px;color:#4ecb91}.ax-kpi:nth-child(3) strong,.ax-kpi:nth-child(4) strong{color:#c7a5ff}.ax-kpi:nth-child(8) strong{color:#ed9dff}
+.ax-row{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:9px;margin-top:9px}.ax-panel{background:linear-gradient(145deg,#061827,#04111d);border:1px solid #124363;border-radius:7px;padding:12px;min-width:0;box-shadow:0 8px 28px rgba(0,0,0,.12)}.ax-panel h3{font-size:12px;color:#e4f3ff;margin:0 0 10px}.ax-panel h3 span{color:#2ea9ed;font-weight:700}.span-5{grid-column:span 5}.span-4{grid-column:span 4}.span-3{grid-column:span 3}.span-6{grid-column:span 6}.span-12{grid-column:span 12}.chart-box{height:220px;position:relative}.chart-box.sm{height:180px}.chart-box canvas{width:100%!important;height:100%!important}
+.ax-legend{display:flex;gap:12px;flex-wrap:wrap;color:#83a1b9;font-size:9px;margin:-4px 0 7px}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}.d1{background:#35a8ff}.d2{background:#a77bff}.d3{background:#36d7a2}.d4{background:#ffae52}
+.ax-table{width:100%;border-collapse:collapse;font-size:9px}.ax-table th{color:#6f8ea8;text-align:left;font-weight:600;padding:6px 5px;border-bottom:1px solid #14354b}.ax-table td{padding:6px 5px;border-bottom:1px solid #0d2739;color:#c8dceb}.ax-table td.num{text-align:right;color:#e9f5ff}.ax-pill{border:1px solid #17587c;background:#071d30;border-radius:10px;padding:2px 7px;font-size:8px;color:#64d9a4}.ax-mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.ax-mini{background:#071827;border:1px solid #11364f;border-radius:6px;padding:8px}.ax-mini small{display:block;color:#66849c;font-size:8px}.ax-mini b{display:block;color:#e7f5ff;font-size:14px;margin-top:3px}.scenario-wrap{overflow:auto}.scenario-bars{height:205px}.history-wrap{overflow:auto;max-height:330px}.empty-note{color:#64839c;font-size:10px;padding:20px;text-align:center}
+@media(max-width:1200px){.ax-grid{grid-template-columns:repeat(4,1fr)}.span-5,.span-4,.span-3,.span-6{grid-column:span 12}}
+@media(max-width:700px){.ax-grid{grid-template-columns:repeat(2,1fr)}.analytics-page{padding:12px}.ax-head{align-items:flex-start;flex-direction:column}.ax-grid,.ax-row{gap:7px}}
+</style>
+<div class="analytics-page">
+  <div class="ax-head"><div class="ax-title"><div class="ax-icon">▥</div><div><h2>Analytics & Insights</h2><p>Mission Performance Intelligence · synchronized with Live Tracking, Scenarios and Reports</p></div></div><div class="ax-tools"><select id="axRange"><option value="all">All Stored Data</option><option value="recent">Recent Activity</option></select><a href="/export.csv">↓ CSV Export</a></div></div>
+  <div class="ax-grid">
+    <div class="ax-kpi"><small>Total Tracking Sessions</small><strong id="akSessions">0</strong><span>SQLite sessions</span></div>
+    <div class="ax-kpi"><small>Total Telemetry Samples</small><strong id="akSamples">0</strong><span>Reading records</span></div>
+    <div class="ax-kpi"><small>Average Angular Error</small><strong id="akAvgError">0°</strong><span>Simulator telemetry</span></div>
+    <div class="ax-kpi"><small>Peak Angular Error</small><strong id="akPeakError">0°</strong><span>Observed maximum</span></div>
+    <div class="ax-kpi"><small>Fine Lock Rate</small><strong id="akLock">0%</strong><span>Sample based</span></div>
+    <div class="ax-kpi"><small>Average AI Confidence</small><strong id="akConf">0%</strong><span>Tracking readings</span></div>
+    <div class="ax-kpi"><small>Link Reliability</small><strong id="akLink">0%</strong><span>Environmental telemetry</span></div>
+    <div class="ax-kpi"><small>Average Signal</small><strong id="akSignal">0 dBm</strong><span>Optical link</span></div>
+  </div>
+
+  <div class="ax-row">
+    <section class="ax-panel span-5"><h3><span>1.</span> Tracking Convergence Analysis</h3><div class="ax-legend"><span><i class="dot d1"></i>Horizontal Error</span><span><i class="dot d2"></i>Vertical Error</span><span><i class="dot d3"></i>Total Error</span></div><div class="chart-box"><canvas id="axConvergence"></canvas></div></section>
+    <section class="ax-panel span-4"><h3><span>2.</span> Alignment Phase Performance</h3><div class="chart-box sm"><canvas id="axPhase"></canvas></div><div id="axPhaseTable"></div></section>
+    <section class="ax-panel span-3"><h3><span>3.</span> AI Controller Analysis</h3><div class="chart-box sm"><canvas id="axCommands"></canvas></div><div class="ax-mini-grid"><div class="ax-mini"><small>Command Events</small><b id="axCmdTotal">0</b></div><div class="ax-mini"><small>Avg First Lock</small><b id="axFirstLock">0 s</b></div><div class="ax-mini"><small>Reacquisitions</small><b id="axReacq">0</b></div></div></section>
+  </div>
+
+  <div class="ax-row">
+    <section class="ax-panel span-5"><h3><span>4.</span> Scenario Performance Analytics</h3><div class="chart-box scenario-bars"><canvas id="axScenario"></canvas></div><div class="scenario-wrap"><table class="ax-table"><thead><tr><th>Scenario</th><th>Avg Error</th><th>Peak Error</th><th>Confidence</th><th>Lock Rate</th><th>Link</th></tr></thead><tbody id="axScenarioTable"></tbody></table></div></section>
+    <section class="ax-panel span-4"><h3><span>5.</span> Environmental / Disturbance Analytics</h3><div class="chart-box sm"><canvas id="axEnvironment"></canvas></div><div class="ax-mini-grid"><div class="ax-mini"><small>Visibility</small><b id="axVisibility">0%</b></div><div class="ax-mini"><small>Scintillation</small><b id="axScint">0</b></div><div class="ax-mini"><small>Noise</small><b id="axNoise">0</b></div></div></section>
+    <section class="ax-panel span-3"><h3><span>6.</span> Signal & Optical Link Analytics</h3><div class="chart-box sm"><canvas id="axSignal"></canvas></div><div class="ax-mini-grid"><div class="ax-mini"><small>Avg Signal</small><b id="axSignal2">0 dBm</b></div><div class="ax-mini"><small>Reliability</small><b id="axLink2">0%</b></div><div class="ax-mini"><small>Peak Error</small><b id="axPeak2">0°</b></div></div></section>
+  </div>
+
+  <div class="ax-row">
+    <section class="ax-panel span-3"><h3><span>7.</span> Target Tracking Analytics</h3><div class="chart-box sm"><canvas id="axTarget"></canvas></div><div class="ax-mini-grid"><div class="ax-mini"><small>Avg Velocity</small><b id="axVel">0 px/s</b></div><div class="ax-mini"><small>Max Velocity</small><b id="axMaxVel">0 px/s</b></div><div class="ax-mini"><small>Avg Angular Rate</small><b id="axRate">0°/s</b></div></div></section>
+    <section class="ax-panel span-3"><h3><span>8.</span> Lock & Recovery Analytics</h3><div class="ax-mini-grid"><div class="ax-mini"><small>Fine Locks</small><b id="axLocks">0</b></div><div class="ax-mini"><small>Time to First Lock</small><b id="axLockTime">0 s</b></div><div class="ax-mini"><small>Avg Lock Duration</small><b id="axLockDur">0 s</b></div><div class="ax-mini"><small>Reacquisition</small><b id="axReacq2">0</b></div><div class="ax-mini"><small>Recovery Time</small><b id="axRecovery">0 s</b></div><div class="ax-mini"><small>Target Lost Events</small><b id="axLost">0</b></div></div><div class="ax-legend" style="margin-top:12px"><span>Target Lost → Reacquisition → Search → Beacon Reacquired → Fine Lock</span></div></section>
+    <section class="ax-panel span-3"><h3><span>9.</span> Live AI Camera Analytics</h3><div class="ax-mini-grid"><div class="ax-mini"><small>Total Detections</small><b id="axLiveDet">0</b></div><div class="ax-mini"><small>Avg Confidence</small><b id="axLiveConf">0%</b></div><div class="ax-mini"><small>Avg Detection Error</small><b id="axLiveErr">0°</b></div><div class="ax-mini"><small>Detection Rate</small><b id="axLiveRate">0</b></div><div class="ax-mini"><small>Tracking Duration</small><b id="axLiveDur">0 s</b></div><div class="ax-mini"><small>Camera Runs</small><b id="axLiveRuns">0</b></div></div><div class="chart-box" style="height:105px;margin-top:8px"><canvas id="axLive"></canvas></div></section>
+    <section class="ax-panel span-3"><h3><span>10.</span> Simulated Camera Analytics</h3><div class="ax-mini-grid"><div class="ax-mini"><small>Total Runs</small><b id="axSimRuns">0</b></div><div class="ax-mini"><small>Total Samples</small><b id="axSimSamples">0</b></div><div class="ax-mini"><small>Avg Error</small><b id="axSimErr">0°</b></div><div class="ax-mini"><small>Peak Error</small><b id="axSimPeak">0°</b></div><div class="ax-mini"><small>Avg Velocity</small><b id="axSimVel">0 px/s</b></div><div class="ax-mini"><small>Angular Rate</small><b id="axSimRate">0°/s</b></div></div><div class="chart-box" style="height:105px;margin-top:8px"><canvas id="axSim"></canvas></div></section>
+  </div>
+
+  <div class="ax-row"><section class="ax-panel span-12"><h3><span>11.</span> Mission History</h3><div class="history-wrap"><table class="ax-table"><thead><tr><th>Session</th><th>Scenario</th><th>Start Time</th><th>Duration</th><th>Samples</th><th>Avg Error</th><th>Peak Error</th><th>Lock Count</th><th>Confidence</th><th>Status</th></tr></thead><tbody id="axHistory"></tbody></table></div></section></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(()=>{
+const $=id=>document.getElementById(id); const charts={};
+const colors=['#35a8ff','#a77bff','#36d7a2','#ffae52','#f36d8f','#66d7ff','#d8a1ff','#8be28b'];
+function set(id,v){if($(id))$(id).textContent=v}
+function chart(id,type,labels,datasets,extra={}){
+    if(charts[id]) charts[id].destroy();
+
+    const ctx=$(id);
+    if(!ctx) return;
+
+    charts[id]=new Chart(ctx,{
+        type:type,
+        data:{
+            labels:labels,
+            datasets:datasets
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            animation:false,
+            plugins:{
+                legend:{
+                    display:extra.legend!==false,
+                    labels:{
+                        color:'#8ba9c0',
+                        font:{size:9},
+                        boxWidth:8
+                    }
+                }
+            },
+            scales:type==='doughnut'
+                ? {}
+                : {
+                    x:{
+                        ticks:{
+                            color:'#66849c',
+                            font:{size:8},
+                            maxTicksLimit:8
+                        },
+                        grid:{
+                            color:'rgba(34,78,105,.25)'
+                        }
+                    },
+                    y:{
+                        ticks:{
+                            color:'#66849c',
+                            font:{size:8}
+                        },
+                        grid:{
+                            color:'rgba(34,78,105,.25)'
+                        },
+                        beginAtZero:true
+                    }
+                },
+            elements:{
+                line:{
+                    tension:.25,
+                    borderWidth:2
+                },
+                point:{
+                    radius:0
+                }
+            }
+        }
+    });
+}
+function lineData(rows,key,label,color){return {label,data:rows.map(x=>x[key]),borderColor:color,backgroundColor:color,fill:false}}
+async function load(){
+ try{
+ const d=await fetch('/api/analytics/insights').then(r=>r.json());
+ const k=d.kpi;set('akSessions',k.sessions);set('akSamples',k.samples.toLocaleString());set('akAvgError',k.avg_error+'°');set('akPeakError',k.peak_error+'°');set('akLock',k.fine_lock_rate+'%');set('akConf',k.ai_confidence+'%');set('akLink',k.link_reliability+'%');set('akSignal',k.signal_dbm+' dBm');
+ chart('axConvergence','line',d.convergence.map(x=>x.t),[lineData(d.convergence,'h','Horizontal Error','#35a8ff'),lineData(d.convergence,'v','Vertical Error','#a77bff'),lineData(d.convergence,'total','Total Error','#36d7a2')]);
+ const ph=Object.entries(d.phase_duration).sort((a,b)=>b[1]-a[1]);chart('axPhase','doughnut',ph.map(x=>x[0]),[{data:ph.map(x=>x[1]),backgroundColor:colors,borderWidth:0}]);$('axPhaseTable').innerHTML='<table class="ax-table"><tbody>'+ph.slice(0,6).map(x=>`<tr><td>${x[0]}</td><td class="num">${Number(x[1]).toFixed(1)} s</td></tr>`).join('')+'</tbody></table>';
+ const cm=Object.entries(d.commands).sort((a,b)=>b[1]-a[1]);chart('axCommands','doughnut',cm.map(x=>x[0]),[{data:cm.map(x=>x[1]),backgroundColor:colors,borderWidth:0}]);set('axCmdTotal',Object.values(d.commands).reduce((a,b)=>a+b,0).toLocaleString());set('axFirstLock',d.lock_recovery.first_lock_seconds+' s');set('axReacq',d.lock_recovery.reacquisition_count);
+ const names=Object.keys(d.scenarios);chart('axScenario','bar',names,[{label:'Avg Error',data:names.map(n=>d.scenarios[n].avg_error),backgroundColor:'#35a8ff'},{label:'Peak Error',data:names.map(n=>d.scenarios[n].peak_error),backgroundColor:'#ffae52'}]);$('axScenarioTable').innerHTML=names.map(n=>{const v=d.scenarios[n];return `<tr><td>${n}</td><td class="num">${v.avg_error}°</td><td class="num">${v.peak_error}°</td><td class="num">${v.confidence}%</td><td class="num">${v.lock_rate}%</td><td class="num">${v.link_reliability}%</td></tr>`}).join('');
+ chart('axEnvironment','line',d.environment.map(x=>x.t),[lineData(d.environment,'turbulence','Turbulence','#35a8ff'),lineData(d.environment,'vibration','Vibration','#ffae52'),lineData(d.environment,'noise','Noise','#36d7a2')]);
+ chart('axSignal','line',d.environment.map(x=>x.t),[lineData(d.environment,'link','Link Reliability','#a77bff')],{legend:true});set('axVisibility',d.scenarios[names[0]]?.visibility+'%');set('axScint',d.scenarios[names[0]]?.scintillation??0);set('axNoise',d.scenarios[names[0]]?.noise??0);set('axSignal2',k.signal_dbm+' dBm');set('axLink2',k.link_reliability+'%');set('axPeak2',k.peak_error+'°');
+ const maxVel=Math.max(0,...d.target_motion.map(x=>x.speed));set('axVel',(d.target_motion.reduce((a,x)=>a+x.speed,0)/(d.target_motion.length||1)).toFixed(1)+' px/s');set('axMaxVel',maxVel.toFixed(1)+' px/s');set('axRate',(d.target_motion.reduce((a,x)=>a+x.angular_rate,0)/(d.target_motion.length||1)).toFixed(2)+'°/s');chart('axTarget','line',d.target_motion.map(x=>x.t),[{label:'X',data:d.target_motion.map(x=>x.x),borderColor:'#35a8ff'},{label:'Y',data:d.target_motion.map(x=>x.y),borderColor:'#a77bff'}]);
+ set('axLocks',d.lock_recovery.locks);set('axLockTime',d.lock_recovery.first_lock_seconds+' s');set('axLockDur',d.lock_recovery.avg_lock_duration+' s');set('axReacq2',d.lock_recovery.reacquisition_count);set('axRecovery',d.lock_recovery.avg_reacquisition+' s');set('axLost',d.lock_recovery.target_lost_events);
+ set('axLiveDet',d.live.detections.toLocaleString());set('axLiveConf',d.live.avg_confidence+'%');set('axLiveErr',d.live.avg_error+'°');set('axLiveRate',d.live.detection_rate);set('axLiveDur',d.live.duration+' s');set('axLiveRuns',d.live.runs);chart('axLive','line',d.live.series.map(x=>x.t),[lineData(d.live.series,'error','Detection Error','#35a8ff'),lineData(d.live.series,'confidence','Confidence','#36d7a2')]);
+ set('axSimRuns',d.simulated.runs);set('axSimSamples',d.simulated.samples.toLocaleString());set('axSimErr',d.simulated.avg_error+'°');set('axSimPeak',d.simulated.peak_error+'°');set('axSimVel',d.simulated.avg_velocity+' px/s');set('axSimRate',d.simulated.avg_angular_rate+'°/s');const sp=Object.entries(d.simulated.phases);chart('axSim','bar',sp.map(x=>x[0]),[{label:'Samples',data:sp.map(x=>x[1]),backgroundColor:'#35a8ff'}],{legend:false});
+ $('axHistory').innerHTML=d.history.length?d.history.map(x=>`<tr><td>#${x.session_id}</td><td>${x.scenario}</td><td>${x.started}</td><td class="num">${x.duration}s</td><td class="num">${x.samples.toLocaleString()}</td><td class="num">${x.avg_error}°</td><td class="num">${x.peak_error}°</td><td class="num">${x.lock_count}</td><td class="num">${x.confidence}%</td><td><span class="ax-pill">${x.status}</span></td></tr>`).join(''):'<tr><td colspan="10" class="empty-note">No stored mission sessions yet.</td></tr>';
+ }catch(e){console.error('Analytics load failed',e)}
+}
+window.initAnalytics=load; load();
+setInterval(load,15000);
+})();
+</script>
+{% endblock %}

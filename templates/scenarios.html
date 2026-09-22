@@ -1,0 +1,5621 @@
+{% extends 'base.html' %}
+{% block title %}Scenarios{% endblock %}
+
+{% block content %}
+<!-- TARGET LOST NOTIFICATION: first response shown to operator -->
+<div id="targetLostNotification" class="target-lost-notification" role="alert" aria-hidden="true">
+    <div class="target-lost-notice-head">
+        <div class="target-lost-notice-icon">!</div>
+        <div>
+            <div class="target-lost-notice-title">TARGET LOST DETECTED</div>
+            <div class="target-lost-notice-sub">Optical beacon unavailable · siren active</div>
+        </div>
+    </div>
+    <div class="target-lost-notice-body" id="targetLostNoticeBody">
+        The Target Lost incident has been recorded. The incident report is being generated.
+    </div>
+    <div id="targetLostReportStatus" class="target-lost-report-status">REPORT: GENERATING...</div>
+    <div class="target-lost-notice-actions">
+        <button type="button" class="target-lost-notice-btn" onclick="dismissTargetLostNotification()">DISMISS</button>
+        <button type="button" class="target-lost-notice-btn primary" onclick="previewTargetLostReport()">PREVIEW PDF</button>
+    </div>
+</div>
+
+<!-- TARGET LOST PDF PREVIEW: opened only after operator chooses Preview PDF -->
+<div id="targetLostReportModal" class="target-lost-modal" aria-hidden="true">
+    <div class="target-lost-modal-card">
+        <div class="target-lost-modal-head">
+            <div>
+                <strong>⚠ TARGET LOST — INCIDENT REPORT</strong>
+                <small>Current Target Lost incident report</small>
+            </div>
+            <button type="button" class="target-lost-close" onclick="closeTargetLostReport()">×</button>
+        </div>
+        <div class="target-lost-report-meta">
+            <span id="targetLostReportTime">Incident detected</span>
+            <span>STATUS: TARGET LOST</span>
+        </div>
+        <iframe id="targetLostReportFrame" title="Target Lost PDF preview"></iframe>
+        <div class="target-lost-modal-actions">
+            <a id="targetLostDownload" class="sc-btn danger" href="#" download="Target_Lost_Incident_Report.pdf">
+                ⬇ DOWNLOAD PDF
+            </a>
+            <button type="button" class="sc-btn" onclick="closeTargetLostReport()">CLOSE</button>
+        </div>
+    </div>
+</div>
+
+
+
+
+<style>
+/* ============================================================
+   TRACKAI FSOC SCENARIO LAB
+   Single-file scenario simulator
+   Only scenarios.html is required to be changed.
+   ============================================================ */
+
+.sc-lab{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+}
+
+.sc-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:16px 18px;
+    border:1px solid #24384d;
+    border-radius:12px;
+    background:linear-gradient(135deg,#0c1b2b,#07111c);
+}
+
+.sc-header-title{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.sc-header-icon{
+    width:42px;
+    height:42px;
+    display:grid;
+    place-items:center;
+    border-radius:10px;
+    background:#102b40;
+    border:1px solid #2d6387;
+    color:#62c2ff;
+    font-size:21px;
+}
+
+.sc-header h2{
+    margin:0;
+    color:#e7f3ff;
+    font-size:17px;
+    letter-spacing:.5px;
+}
+
+.sc-header p{
+    margin:3px 0 0;
+    color:#7790a5;
+    font-size:10px;
+}
+
+.sc-status{
+    display:flex;
+    gap:7px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+}
+
+.sc-pill{
+    padding:6px 9px;
+    border-radius:6px;
+    border:1px solid #263e54;
+    background:#091622;
+    color:#8da6ba;
+    font-size:8px;
+    font-weight:800;
+    letter-spacing:.5px;
+}
+
+.sc-pill.green{
+    color:#57ed9a;
+    border-color:#285e48;
+}
+
+.sc-pill.blue{
+    color:#62bfff;
+    border-color:#285b7d;
+}
+
+.sc-pill.amber{
+    color:#ffbd55;
+    border-color:#665027;
+}
+
+.sc-grid{
+    display:grid;
+    grid-template-columns:235px minmax(450px,1fr) 275px;
+    gap:12px;
+}
+
+.sc-panel{
+    border:1px solid #24384d;
+    border-radius:11px;
+    background:#091522;
+    overflow:hidden;
+}
+
+.sc-panel-head{
+    min-height:40px;
+    padding:10px 12px;
+    border-bottom:1px solid #1d3042;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.sc-panel-head h3{
+    margin:0;
+    font-size:9px;
+    color:#9db4c7;
+    text-transform:uppercase;
+    letter-spacing:1px;
+}
+
+.sc-panel-body{
+    padding:10px;
+}
+
+/* ============================================================
+   SCENARIO CARDS
+   ============================================================ */
+
+.scenario-list{
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+}
+
+.scenario-card{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:9px;
+    text-align:left;
+    padding:10px;
+    border:1px solid #1d3448;
+    border-radius:9px;
+    background:#0a1724;
+    color:#d4e2ee;
+    cursor:pointer;
+    transition:.18s ease;
+}
+
+.scenario-card:hover{
+    border-color:#3e7294;
+    transform:translateY(-1px);
+}
+
+.scenario-card.active{
+    border-color:#b58a2c;
+    background:linear-gradient(135deg,#29230f,#101a22);
+    box-shadow:0 0 18px rgba(255,191,80,.06);
+}
+
+.sc-icon{
+    width:34px;
+    height:34px;
+    flex:0 0 34px;
+    display:grid;
+    place-items:center;
+    border-radius:8px;
+    background:#102438;
+    border:1px solid #29465d;
+    font-size:16px;
+}
+
+.scenario-card.active .sc-icon{
+    border-color:#b58a2c;
+    background:#33280f;
+}
+
+.sc-card-text{
+    min-width:0;
+}
+
+.sc-card-text strong{
+    display:block;
+    font-size:9px;
+    color:#e3eef7;
+}
+
+.sc-card-text small{
+    display:block;
+    margin-top:3px;
+    font-size:7px;
+    line-height:1.4;
+    color:#748da2;
+}
+
+.sc-check{
+    margin-left:auto;
+    opacity:0;
+    color:#57ed9a;
+}
+
+.scenario-card.active .sc-check{
+    opacity:1;
+}
+
+/* ============================================================
+   CAMERA
+   ============================================================ */
+
+.camera-panel{
+    min-width:0;
+}
+
+.camera-header-right{
+    display:flex;
+    gap:6px;
+}
+
+.virtual-camera{
+    position:relative;
+    height:455px;
+    overflow:hidden;
+    background:#01060b;
+}
+
+#scenarioCanvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:block;
+}
+
+.camera-overlay{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+}
+
+.hud-top{
+    position:absolute;
+    top:9px;
+    left:11px;
+    right:11px;
+    display:flex;
+    justify-content:space-between;
+    font-family:monospace;
+    font-size:8px;
+    color:#d1e3f0;
+}
+
+.hud-bottom{
+    position:absolute;
+    left:11px;
+    right:11px;
+    bottom:9px;
+    display:flex;
+    justify-content:space-between;
+    font-family:monospace;
+    font-size:8px;
+    color:#8ba4b8;
+}
+
+.cam-corner{
+    position:absolute;
+    width:24px;
+    height:24px;
+    border-color:rgba(107,198,255,.7);
+    border-style:solid;
+}
+
+.cam-corner.tl{
+    top:28px;
+    left:10px;
+    border-width:1px 0 0 1px;
+}
+
+.cam-corner.tr{
+    top:28px;
+    right:10px;
+    border-width:1px 1px 0 0;
+}
+
+.cam-corner.bl{
+    bottom:29px;
+    left:10px;
+    border-width:0 0 1px 1px;
+}
+
+.cam-corner.br{
+    bottom:29px;
+    right:10px;
+    border-width:0 1px 1px 0;
+}
+
+.lock-banner{
+    position:absolute;
+    left:50%;
+    top:42px;
+    transform:translateX(-50%);
+    padding:5px 11px;
+    border-radius:6px;
+    border:1px solid #3c9b67;
+    background:rgba(3,24,14,.9);
+    color:#57ed9a;
+    font-family:monospace;
+    font-size:8px;
+    font-weight:900;
+    letter-spacing:1px;
+    display:none;
+}
+
+.camera-status{
+    position:absolute;
+    left:50%;
+    bottom:38px;
+    transform:translateX(-50%);
+    font-family:monospace;
+    font-size:8px;
+    color:#9cb3c4;
+    white-space:nowrap;
+}
+
+/* ============================================================
+   CONTROLS
+   ============================================================ */
+
+.camera-controls{
+    padding:9px;
+    border-top:1px solid #1c3042;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+    background:#08131f;
+}
+
+.sc-buttons{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+}
+
+.sc-btn{
+    border:1px solid #2b455b;
+    background:#0e2132;
+    color:#cbdbe7;
+    border-radius:6px;
+    padding:7px 10px;
+    font-size:8px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.sc-btn:hover{
+    border-color:#5d87a5;
+}
+
+.sc-btn.primary{
+    background:#1769e0;
+    border-color:#3186ff;
+    color:white;
+}
+
+.sc-btn.success{
+    background:#103526;
+    border-color:#2e7954;
+    color:#75efaa;
+}
+
+.sc-btn.danger{
+    background:#32151a;
+    border-color:#79333d;
+    color:#ff8c98;
+}
+
+/* ============================================================
+   PARAMETERS
+   ============================================================ */
+
+.phase-box{
+    padding:10px;
+    border:1px solid #243b50;
+    border-radius:8px;
+    background:#08131f;
+}
+
+.phase-title{
+    color:#e4eff8;
+    font-size:12px;
+    font-weight:900;
+}
+
+.phase-desc{
+    margin-top:4px;
+    color:#748da2;
+    font-size:8px;
+}
+
+.progress{
+    height:5px;
+    margin-top:9px;
+    border-radius:10px;
+    background:#172b3c;
+    overflow:hidden;
+}
+
+.progress i{
+    display:block;
+    width:0%;
+    height:100%;
+    background:#57ed9a;
+    transition:width .2s linear;
+}
+
+.param-list{
+    margin-top:10px;
+}
+
+.param{
+    display:flex;
+    justify-content:space-between;
+    padding:7px 2px;
+    border-bottom:1px solid #172a3b;
+    gap:7px;
+}
+
+.param:last-child{
+    border-bottom:0;
+}
+
+.param span{
+    color:#7891a5;
+    font-size:8px;
+}
+
+.param b{
+    color:#dbe9f4;
+    font-size:8px;
+    font-family:monospace;
+    text-align:right;
+}
+
+.param b.green{
+    color:#57ed9a;
+}
+
+.param b.blue{
+    color:#62bfff;
+}
+
+.param b.amber{
+    color:#ffbd55;
+}
+
+.metrics{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+    margin-top:10px;
+}
+
+.metric{
+    padding:8px;
+    border-radius:7px;
+    border:1px solid #1b3145;
+    background:#08131f;
+}
+
+.metric small{
+    display:block;
+    color:#6f879b;
+    font-size:7px;
+    text-transform:uppercase;
+}
+
+.metric strong{
+    display:block;
+    color:#dbe8f2;
+    font-family:monospace;
+    font-size:11px;
+    margin-top:4px;
+}
+
+.metric strong.green{
+    color:#57ed9a;
+}
+
+.metric strong.blue{
+    color:#62bfff;
+}
+
+.metric strong.amber{
+    color:#ffbd55;
+}
+
+.metric strong.red{
+    color:#ff6977;
+}
+
+/* ============================================================
+   BOTTOM ANALYTICS
+   ============================================================ */
+
+.analytics-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:12px;
+}
+
+.analytics-panel{
+    padding:11px;
+    border:1px solid #24384d;
+    border-radius:10px;
+    background:#091522;
+}
+
+.analytics-title{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:9px;
+}
+
+.analytics-title b{
+    color:#9db4c7;
+    font-size:8px;
+    text-transform:uppercase;
+    letter-spacing:.8px;
+}
+
+.analytics-title span{
+    color:#6c8498;
+    font-size:7px;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:6px;
+}
+
+.stat{
+    padding:8px;
+    background:#08131f;
+    border:1px solid #1b3042;
+    border-radius:7px;
+}
+
+.stat small{
+    display:block;
+    color:#6e879a;
+    font-size:7px;
+}
+
+.stat b{
+    display:block;
+    margin-top:4px;
+    color:#dce9f3;
+    font-family:monospace;
+    font-size:12px;
+}
+
+.trail-box{
+    position:relative;
+    height:110px;
+    overflow:hidden;
+    background:
+        linear-gradient(rgba(78,136,174,.08) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(78,136,174,.08) 1px,transparent 1px),
+        #06111c;
+    background-size:22px 22px;
+    border:1px solid #1b3042;
+}
+
+.trail-center{
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:8px;
+    height:8px;
+    transform:translate(-50%,-50%);
+    border:1px solid #57ed9a;
+    border-radius:50%;
+}
+
+.trail-center:before{
+    content:"";
+    position:absolute;
+    width:30px;
+    height:1px;
+    left:-12px;
+    top:3px;
+    background:#57ed9a;
+    opacity:.5;
+}
+
+.trail-center:after{
+    content:"";
+    position:absolute;
+    width:1px;
+    height:30px;
+    left:3px;
+    top:-12px;
+    background:#57ed9a;
+    opacity:.5;
+}
+
+.trail-dot{
+    position:absolute;
+    width:5px;
+    height:5px;
+    border-radius:50%;
+    background:#69bfff;
+    transform:translate(-50%,-50%);
+}
+
+.event-box{
+    height:110px;
+    overflow:auto;
+    font-family:monospace;
+    font-size:7px;
+}
+
+.event{
+    padding:5px 0;
+    border-bottom:1px solid #172a3b;
+    color:#8da4b6;
+}
+
+.event b{
+    color:#62bfff;
+}
+
+.event.success b{
+    color:#57ed9a;
+}
+
+.event.warn b{
+    color:#ffbd55;
+}
+
+.event.error b{
+    color:#ff6977;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media(max-width:1150px){
+
+    .sc-grid{
+        grid-template-columns:210px minmax(400px,1fr);
+    }
+
+    .details-panel{
+        grid-column:1/-1;
+    }
+
+    .analytics-grid{
+        grid-template-columns:1fr;
+    }
+}
+
+@media(max-width:760px){
+
+    .sc-grid{
+        grid-template-columns:1fr;
+    }
+
+    .details-panel{
+        grid-column:auto;
+    }
+
+    .virtual-camera{
+        height:360px;
+    }
+
+    .stats{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .sc-header{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+}
+
+/* TARGET LOST ALERT + PDF REPORT */
+.target-lost-banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.94);min-width:300px;padding:18px 26px;text-align:center;border:1px solid rgba(255,70,70,.8);background:rgba(75,4,10,.92);color:#ff6b6b;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20;box-shadow:0 0 35px rgba(255,30,30,.25);font-weight:800;letter-spacing:1px}.target-lost-banner.active{opacity:1;transform:translate(-50%,-50%) scale(1);animation:targetLostPulse 1s infinite}.target-lost-banner small{font-size:9px;color:#ffd2d2;letter-spacing:.7px}@keyframes targetLostPulse{0%,100%{box-shadow:0 0 20px rgba(255,30,30,.25)}50%{box-shadow:0 0 42px rgba(255,30,30,.55)}}
+.target-lost-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:10000;align-items:center;justify-content:center;padding:18px}.target-lost-modal.active{display:flex}.target-lost-modal-card{width:min(980px,96vw);height:min(88vh,760px);background:#071019;border:1px solid #274052;border-radius:12px;box-shadow:0 25px 80px rgba(0,0,0,.55);display:flex;flex-direction:column;overflow:hidden}.target-lost-modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #203341;color:#e9f5fb}.target-lost-modal-head strong{display:block;font-size:13px}.target-lost-modal-head small{display:block;color:#8199aa;font-size:9px;margin-top:3px}.target-lost-close{background:none;border:0;color:#9db4c7;font-size:28px;cursor:pointer}.target-lost-report-meta{display:flex;justify-content:space-between;padding:8px 18px;color:#ff7373;font-size:9px;background:#0a151e}#targetLostReportFrame{flex:1;width:100%;border:0;background:white}.target-lost-modal-actions{display:flex;justify-content:flex-end;gap:8px;padding:11px 18px;border-top:1px solid #203341;background:#071019}
+
+/* TARGET LOST INCIDENT NOTIFICATION */
+.target-lost-notification{
+    display:none;
+    position:fixed;
+    top:78px;
+    right:22px;
+    width:min(430px,calc(100vw - 44px));
+    z-index:11000;
+    background:linear-gradient(135deg,#17090b,#0b1118);
+    border:1px solid #a52f38;
+    border-left:4px solid #ff4d5a;
+    border-radius:10px;
+    box-shadow:0 18px 60px rgba(0,0,0,.58);
+    color:#eaf4fb;
+    overflow:hidden;
+}
+.target-lost-notification.show{display:block;animation:targetLostNoticeIn .22s ease-out}
+@keyframes targetLostNoticeIn{
+    from{opacity:0;transform:translateY(-10px) translateX(8px)}
+    to{opacity:1;transform:none}
+}
+.target-lost-notice-head{
+    display:flex;align-items:center;gap:10px;
+    padding:13px 15px 8px;
+}
+.target-lost-notice-icon{
+    width:30px;height:30px;border-radius:7px;
+    display:grid;place-items:center;
+    background:#4a1016;border:1px solid #a52f38;
+    color:#ff6670;font-size:16px;font-weight:900;
+}
+.target-lost-notice-title{
+    font-size:12px;font-weight:900;letter-spacing:.45px;color:#ff6972;
+}
+.target-lost-notice-sub{
+    margin-top:3px;font-size:9px;color:#91a6b6;
+}
+.target-lost-notice-body{
+    padding:5px 15px 12px;font-size:10px;color:#c8d6df;line-height:1.5;
+}
+.target-lost-report-status{padding:0 15px 10px;font-family:monospace;font-size:8px;font-weight:900;letter-spacing:.7px;color:#ffbd55}.target-lost-report-status.ready{color:#57ed9a}.target-lost-report-status.error{color:#ff6b73}
+.target-lost-notice-actions{
+    display:flex;justify-content:flex-end;gap:7px;
+    padding:10px 15px;border-top:1px solid #2a2024;background:#0a1016;
+}
+.target-lost-notice-btn{
+    border:1px solid #355064;border-radius:6px;
+    background:#101d28;color:#c9e1ef;
+    padding:7px 11px;font-size:9px;font-weight:800;
+    letter-spacing:.35px;cursor:pointer;
+}
+.target-lost-notice-btn.primary{
+    border-color:#b23842;background:#4b1117;color:#ffe1e3;
+}
+.target-lost-notice-btn:hover{filter:brightness(1.15)}
+
+/* TARGET LOST PDF PREVIEW MODAL */
+.target-lost-modal{
+    display:none;position:fixed;inset:0;
+    background:rgba(0,0,0,.80);z-index:12000;
+    align-items:center;justify-content:center;padding:18px;
+}
+.target-lost-modal.active{display:flex!important}
+.target-lost-modal-card{
+    width:min(980px,96vw);height:min(88vh,760px);
+    background:#071019;border:1px solid #274052;border-radius:12px;
+    box-shadow:0 25px 80px rgba(0,0,0,.55);
+    display:flex;flex-direction:column;overflow:hidden;
+}
+.target-lost-modal-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 18px;border-bottom:1px solid #203341;color:#e9f5fb;
+}
+.target-lost-modal-head strong{display:block;font-size:13px}
+.target-lost-modal-head small{display:block;color:#8199aa;font-size:9px;margin-top:3px}
+.target-lost-close{background:none;border:0;color:#9db4c7;font-size:28px;cursor:pointer}
+.target-lost-report-meta{
+    display:flex;justify-content:space-between;padding:8px 18px;
+    color:#ff7373;font-size:9px;background:#0a151e;
+}
+#targetLostReportFrame{flex:1;width:100%;border:0;background:white}
+.target-lost-modal-actions{
+    display:flex;justify-content:flex-end;gap:8px;
+    padding:11px 18px;border-top:1px solid #203341;background:#071019;
+}
+</style>
+
+
+<div class="sc-lab">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="sc-header">
+
+        <div class="sc-header-title">
+
+            <div class="sc-header-icon">⌖</div>
+
+            <div>
+                <h2>SCENARIO VIEW + LIVE AI CAMERA FEED</h2>
+
+                <p>
+                    Scenario-specific virtual optical environment ·
+                    AI detection · continuous tracking · centre lock
+                </p>
+            </div>
+
+        </div>
+
+        <div class="sc-status">
+
+            <span class="sc-pill blue" id="aiStatus">
+                AI: READY
+            </span>
+
+            <span class="sc-pill" id="cameraStatus">
+                CAMERA: VIRTUAL
+            </span>
+
+            <span class="sc-pill green" id="systemStatus">
+                ● STANDBY
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         MAIN GRID
+         ======================================================== -->
+
+    <div class="sc-grid">
+
+
+        <!-- ====================================================
+             SCENARIO SELECTION
+             ==================================================== -->
+
+        <section class="sc-panel">
+
+            <div class="sc-panel-head">
+
+                <h3>Scenario Selection</h3>
+
+                <span style="font-size:7px;color:#688095">
+                    6 MISSION MODES
+                </span>
+
+            </div>
+
+
+            <div class="sc-panel-body">
+
+                <div class="scenario-list">
+
+                    {% for s in scenarios %}
+
+                    <button
+                        class="scenario-card {% if loop.first %}active{% endif %}"
+                        data-scenario="{{ s }}"
+                        onclick="selectScenario('{{ s|e }}')">
+
+                        <span class="sc-icon">
+
+                            {% if s == 'Nominal Orbital' %}
+                                ◈
+                            {% elif s == 'Atmospheric Turbulence' %}
+                                ≋
+                            {% elif s == 'Platform Vibration' %}
+                                ≋
+                            {% elif s == 'Low Beacon SNR' %}
+                                ◉
+                            {% elif s == 'Fast Target Motion' %}
+                                »
+                            {% elif s == 'Target Lost' %}
+                                ⚠
+                            {% else %}
+                                ◌
+                            {% endif %}
+
+                        </span>
+
+                        <span class="sc-card-text">
+
+                            <strong>{{ s }}</strong>
+
+                            <small>
+
+                                {% if s == 'Nominal Orbital' %}
+                                    Stable orbital beacon tracking
+
+                                {% elif s == 'Atmospheric Turbulence' %}
+                                    Scintillation + optical turbulence
+
+                                {% elif s == 'Platform Vibration' %}
+                                    Gimbal/platform vibration
+
+                                {% elif s == 'Low Beacon SNR' %}
+                                    Weak beacon + noisy detection
+
+                                {% elif s == 'Fast Target Motion' %}
+                                    High angular-rate target
+
+                                {% elif s == 'Target Lost' %}
+                                    Beacon loss + siren + instant report
+
+                                {% else %}
+                                    FSOC tracking scenario
+
+                                {% endif %}
+
+                            </small>
+
+                        </span>
+
+                        <span class="sc-check">✓</span>
+
+                    </button>
+
+                    {% endfor %}
+
+                </div>
+
+
+                <div style="height:10px"></div>
+
+                <button
+                    class="sc-btn primary"
+                    style="width:100%"
+                    onclick="startScenario()">
+
+                    ▶ START AI TRACKING
+
+                </button>
+
+                <button
+                    class="sc-btn danger"
+                    style="width:100%;margin-top:6px"
+                    onclick="stopScenario()">
+
+                    ■ STOP
+
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================================
+             VIRTUAL AI CAMERA
+             ==================================================== -->
+
+        <section class="sc-panel camera-panel">
+
+            <div class="sc-panel-head">
+
+                <h3>Live AI Camera Feed</h3>
+
+                <div class="camera-header-right">
+
+                    <span class="sc-pill amber" id="phasePill">
+                        SEARCHING
+                    </span>
+
+                    <span class="sc-pill" id="lockPill">
+                        UNLOCKED
+                    </span>
+
+                    <span class="sc-pill blue" id="fpsPill">
+                        30 FPS
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="virtual-camera">
+
+                <canvas id="scenarioCanvas"></canvas>
+
+                <div class="camera-overlay">
+
+                    <div class="hud-top">
+
+                        <span id="hudScenario">
+                            SCENARIO: NOMINAL ORBITAL
+                        </span>
+
+                        <span id="hudState">
+                            STATUS: STANDBY
+                        </span>
+
+                    </div>
+
+
+                    <div class="hud-bottom">
+
+                        <span id="hudFrame">
+                            FRAME: 960 × 540
+                        </span>
+
+                        <span id="hudModel">
+                            MODEL: VIRTUAL AI + TRACKER
+                        </span>
+
+                    </div>
+
+
+                    <div class="cam-corner tl"></div>
+                    <div class="cam-corner tr"></div>
+                    <div class="cam-corner bl"></div>
+                    <div class="cam-corner br"></div>
+
+
+                    <div
+                        class="lock-banner"
+                        id="lockBanner">
+
+                        ✓ TARGET FINE LOCK
+
+                    </div>
+
+
+                    <div
+                        class="camera-status"
+                        id="cameraStatusText">
+
+                        WAITING FOR SCENARIO
+
+                    </div>
+
+                    <div class="target-lost-banner" id="targetLostBanner">
+                        ⚠ TARGET LOST<br>
+                        <small>SIREN ACTIVE · AUTOMATIC REACQUISITION</small>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="camera-controls">
+
+                <div class="sc-buttons">
+
+                    <button
+                        class="sc-btn primary"
+                        onclick="startScenario()">
+
+                        ▶ START
+
+                    </button>
+
+                    <button
+                        class="sc-btn success"
+                        onclick="centerTarget()">
+
+                        ⌖ CENTRE
+
+                    </button>
+
+                    <button
+                        class="sc-btn"
+                        onclick="reacquireTarget()">
+
+                        ⟳ REACQUIRE
+
+                    </button>
+
+                    <button
+                        class="sc-btn danger"
+                        onclick="stopScenario()">
+
+                        ■ STOP
+
+                    </button>
+
+                </div>
+
+                <span style="font-size:7px;color:#657d91;text-align:right">
+                    DETECT → TRACK → ALIGN → LOCK
+                </span>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================================
+             PARAMETERS
+             ==================================================== -->
+
+        <section class="sc-panel details-panel">
+
+            <div class="sc-panel-head">
+
+                <h3>Mission Parameters</h3>
+
+                <span
+                    id="profileStatus"
+                    style="font-size:7px;color:#6e879a">
+
+                    READY
+
+                </span>
+
+            </div>
+
+
+            <div class="sc-panel-body">
+
+
+                <div class="phase-box">
+
+                    <div
+                        class="phase-title"
+                        id="phaseName">
+
+                        SEARCHING
+
+                    </div>
+
+                    <div
+                        class="phase-desc"
+                        id="phaseDescription">
+
+                        AI camera waiting for target acquisition
+
+                    </div>
+
+                    <div class="progress">
+
+                        <i id="lockProgress"></i>
+
+                    </div>
+
+                </div>
+
+
+                <div class="metrics">
+
+                    <div class="metric">
+
+                        <small>Detection</small>
+
+                        <strong
+                            id="metricDetection">
+
+                            WAITING
+
+                        </strong>
+
+                    </div>
+
+
+                    <div class="metric">
+
+                        <small>Target Lock</small>
+
+                        <strong
+                            id="metricLock">
+
+                            NO
+
+                        </strong>
+
+                    </div>
+
+
+                    <div class="metric">
+
+                        <small>Confidence</small>
+
+                        <strong
+                            id="metricConfidence">
+
+                            --%
+
+                        </strong>
+
+                    </div>
+
+
+                    <div class="metric">
+
+                        <small>Total Error</small>
+
+                        <strong
+                            id="metricError">
+
+                            --°
+
+                        </strong>
+
+                    </div>
+
+
+                    <div class="metric">
+
+                        <small>Horizontal Error</small>
+
+                        <strong
+                            id="metricH">
+
+                            --°
+
+                        </strong>
+
+                    </div>
+
+
+                    <div class="metric">
+
+                        <small>Vertical Error</small>
+
+                        <strong
+                            id="metricV">
+
+                            --°
+
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    style="
+                    margin-top:12px;
+                    padding-bottom:6px;
+                    border-bottom:1px solid #1b3042;
+                    color:#9db4c7;
+                    font-size:8px;
+                    text-transform:uppercase;
+                    letter-spacing:.8px;
+                    ">
+
+                    Scenario Configuration
+
+                </div>
+
+
+                <div class="param-list">
+
+                    <div class="param">
+
+                        <span>Target</span>
+
+                        <b id="pTarget">
+                            FSOC Optical Beacon
+                        </b>
+
+                    </div>
+
+
+                    <div class="param">
+
+                        <span>Target Motion</span>
+
+                        <b id="pMotion">
+                            Orbital Drift
+                        </b>
+
+                    </div>
+
+
+                    <div class="param">
+
+                        <span>Motion Rate</span>
+
+                        <b id="pMotionRate">
+                            0.18
+                        </b>
+
+                    </div>
+
+
+                    <div class="param">
+
+                        <span>Atmospheric Turbulence</span>
+
+                        <b id="pTurbulence">
+                            LOW
+                        </b>
+
+                    </div>
+
+
+                    <div class="param">
+
+                        <span>Platform Vibration</span>
+
+                        <b id="pVibration">
+                            LOW
+                        </b>
+
+                    </div>
+
+
+                    <div class="param">
+
+                        <span>Beacon Noise</span>
+
+                        <b id="pNoise">
+                            LOW
+                        </b>
+
+                    </div>
+
+
+                    <div class="param">
+
+                        <span>Beacon Signal</span>
+
+                        <b id="pSignal">
+                            -46 dBm
+                        </b>
+
+                    </div>
+
+
+                    <div class="param">
+
+                        <span>Camera HFOV</span>
+
+                        <b>
+                            42°
+                        </b>
+
+                    </div>
+
+
+                    <div class="param">
+
+                        <span>Camera VFOV</span>
+
+                        <b>
+                            24°
+                        </b>
+
+                    </div>
+
+
+                    <div class="param">
+
+                        <span>Coarse Alignment Limit</span>
+
+                        <b>
+                            2.00°
+                        </b>
+
+                    </div>
+
+
+                    <div class="param">
+
+                        <span>Fine Lock Limit</span>
+
+                        <b>
+                            0.50°
+                        </b>
+
+                    </div>
+
+
+                    <div class="param">
+
+                        <span>Tracking Rate</span>
+
+                        <b>
+                            30 FPS
+                        </b>
+
+                    </div>
+
+
+                    <div class="param">
+
+                        <span>Tracker</span>
+
+                        <b class="blue">
+                            Predictive AI Tracker
+                        </b>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+
+    <!-- ========================================================
+         ANALYTICS
+         ======================================================== -->
+
+    <div class="analytics-grid">
+
+
+        <section class="analytics-panel">
+
+            <div class="analytics-title">
+
+                <b>Real-Time Analytics</b>
+
+                <span id="analyticsScenario">
+                    Nominal Orbital
+                </span>
+
+            </div>
+
+
+            <div class="stats">
+
+                <div class="stat">
+
+                    <small>OBJECTS TRACKED</small>
+
+                    <b id="statTracked">
+                        0
+                    </b>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <small>CONFIDENCE</small>
+
+                    <b id="statConfidence">
+                        --%
+                    </b>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <small>TRACK ERROR</small>
+
+                    <b id="statError">
+                        --°
+                    </b>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <small>LOCK TIME</small>
+
+                    <b id="statDuration">
+                        00:00
+                    </b>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="analytics-panel">
+
+            <div class="analytics-title">
+
+                <b>Target Tracking Trail</b>
+
+                <span>
+                    LIVE CENTROID
+                </span>
+
+            </div>
+
+
+            <div
+                class="trail-box"
+                id="trailBox">
+
+                <div class="trail-center"></div>
+
+            </div>
+
+        </section>
+
+
+        <section class="analytics-panel">
+
+            <div class="analytics-title">
+
+                <b>AI Event Stream</b>
+
+                <span>
+                    LIVE
+                </span>
+
+            </div>
+
+
+            <div
+                class="event-box"
+                id="eventBox">
+
+                <div class="event">
+
+                    <b>SYSTEM</b>
+                    Scenario engine initialized
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</div>
+
+<style>
+/* ============================================================
+   GRAPHS & ANALYSIS PANEL
+   ============================================================ */
+.sc-graphs-panel{
+    border:1px solid #24384d;
+    border-radius:12px;
+    background:#091522;
+    overflow:hidden;
+    margin-top:2px;
+}
+.sc-graphs-head{
+    padding:16px 18px;
+    border-bottom:1px solid #1d3042;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    background:linear-gradient(135deg,#0c1b2b,#07111c);
+}
+.sc-graphs-kicker{
+    color:#62bfff;
+    font-size:8px;
+    font-weight:900;
+    letter-spacing:1.2px;
+}
+.sc-graphs-head h2{
+    margin:4px 0 0;
+    color:#e7f3ff;
+    font-size:16px;
+}
+.sc-graphs-head p{
+    margin:4px 0 0;
+    color:#7790a5;
+    font-size:9px;
+}
+.sc-graphs-status{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+}
+.sc-graph-pill{
+    padding:6px 9px;
+    border-radius:6px;
+    border:1px solid #263e54;
+    background:#091622;
+    font-size:8px;
+    font-weight:900;
+    letter-spacing:.4px;
+}
+.sc-graph-pill.blue{color:#62bfff;border-color:#285b7d}
+.sc-graph-pill.green{color:#57ed9a;border-color:#285e48}
+.sc-graphs-controls{
+    padding:12px;
+    display:grid;
+    grid-template-columns:260px 1fr;
+    gap:10px;
+    border-bottom:1px solid #1d3042;
+}
+.sc-graph-select-wrap{
+    padding:10px;
+    border:1px solid #1b3145;
+    border-radius:8px;
+    background:#08131f;
+}
+.sc-graph-select-wrap label{
+    display:block;
+    color:#6f879b;
+    font-size:7px;
+    font-weight:900;
+    letter-spacing:.7px;
+    margin-bottom:5px;
+}
+#graphParameter{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid #2b455b;
+    border-radius:7px;
+    background:#0d1d2c;
+    color:#e0edf7;
+    font-size:9px;
+    font-weight:800;
+    outline:none;
+}
+#graphParameter:focus{border-color:#4d8ab4;box-shadow:0 0 0 2px rgba(98,191,255,.08)}
+.sc-graph-summary{
+    display:grid;
+    grid-template-columns:1.2fr 1fr 1fr;
+    gap:6px;
+}
+.sc-graph-summary>div{
+    padding:10px;
+    border:1px solid #1b3145;
+    border-radius:8px;
+    background:#08131f;
+}
+.sc-graph-summary small{
+    display:block;
+    color:#6f879b;
+    font-size:7px;
+    font-weight:900;
+}
+.sc-graph-summary strong{
+    display:block;
+    margin-top:5px;
+    color:#dbe9f4;
+    font-size:11px;
+    font-family:monospace;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+.sc-graph-layout{
+    display:grid;
+    grid-template-columns:minmax(0,1.8fr) minmax(270px,.75fr);
+    gap:12px;
+    padding:12px;
+}
+.sc-graph-card,.sc-analysis-card{
+    min-width:0;
+    border:1px solid #1d3448;
+    border-radius:10px;
+    background:#08131f;
+    overflow:hidden;
+}
+.sc-graph-card-head{
+    padding:11px 12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+    border-bottom:1px solid #1a2e40;
+}
+.sc-graph-card-head h3{
+    margin:0;
+    color:#dce9f4;
+    font-size:10px;
+    font-weight:900;
+}
+.sc-graph-card-head span:not(.sc-graph-type){
+    display:block;
+    margin-top:3px;
+    color:#6f879b;
+    font-size:7px;
+    line-height:1.4;
+}
+.sc-graph-type{
+    padding:4px 7px;
+    border-radius:5px;
+    background:#102b40;
+    color:#62bfff;
+    border:1px solid #285b7d;
+    font-size:7px;
+    font-weight:900;
+}
+.sc-chart-wrap{
+    position:relative;
+    height:315px;
+    padding:12px;
+}
+#scenarioMetricChart{
+    width:100%!important;
+    height:100%!important;
+}
+.sc-analysis-main{
+    padding:14px 12px 11px;
+    border-bottom:1px solid #1a2e40;
+}
+.sc-analysis-score{
+    display:inline-block;
+    padding:5px 8px;
+    border-radius:5px;
+    background:#102b40;
+    border:1px solid #285b7d;
+    color:#62bfff;
+    font-size:7px;
+    font-weight:900;
+    letter-spacing:.7px;
+}
+.sc-analysis-score.good{color:#57ed9a;border-color:#285e48;background:#0d2b20}
+.sc-analysis-score.warn{color:#ffbd55;border-color:#665027;background:#2b220e}
+.sc-analysis-score.danger{color:#ff6977;border-color:#79333d;background:#32151a}
+.sc-analysis-main h4{
+    margin:9px 0 5px;
+    color:#e2edf6;
+    font-size:12px;
+}
+.sc-analysis-main p{
+    margin:0;
+    color:#7891a5;
+    font-size:9px;
+    line-height:1.55;
+}
+.sc-analysis-list{
+    padding:4px 12px 9px;
+}
+.sc-analysis-list>div{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    padding:8px 0;
+    border-bottom:1px solid #172a3b;
+}
+.sc-analysis-list>div:last-child{border-bottom:0}
+.sc-analysis-list span{color:#6f879b;font-size:8px}
+.sc-analysis-list b{color:#dbe9f4;font-size:8px;font-family:monospace;text-align:right}
+.sc-graph-note{
+    margin:0 12px 12px;
+    padding:9px 11px;
+    border:1px solid #23384c;
+    border-radius:7px;
+    background:#07111b;
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+    color:#71899d;
+    font-size:8px;
+    line-height:1.5;
+}
+.sc-graph-note span{color:#62bfff;font-size:11px}
+.sc-graph-note b{color:#a9bdcd}
+@media(max-width:1000px){
+    .sc-graphs-controls{grid-template-columns:1fr}
+    .sc-graph-layout{grid-template-columns:1fr}
+}
+@media(max-width:650px){
+    .sc-graphs-head{align-items:flex-start;flex-direction:column}
+    .sc-graphs-status{justify-content:flex-start}
+    .sc-graph-summary{grid-template-columns:1fr}
+    .sc-chart-wrap{height:270px}
+}
+</style>
+
+<section class="sc-graphs-panel" id="scenarioGraphs">
+    <div class="sc-graphs-head">
+        <div>
+            <div class="sc-graphs-kicker">OPTIONAL ANALYSIS</div>
+            <h2>Graphs & Analysis</h2>
+            <p>Choose any scenario parameter to inspect its simulated behaviour and interpretation.</p>
+        </div>
+        <div class="sc-graphs-status">
+            <span class="sc-graph-pill blue" id="graphScenarioPill">NOMINAL ORBITAL</span>
+            <span class="sc-graph-pill green">SCENARIO-SPECIFIC DATA</span>
+        </div>
+    </div>
+
+    <div class="sc-graphs-controls">
+        <div class="sc-graph-select-wrap">
+            <label for="graphParameter">SELECT GRAPH / PARAMETER</label>
+            <select id="graphParameter">
+                <option value="relativeVelocity">Relative Velocity</option>
+                <option value="missDistance">Miss Distance</option>
+                <option value="collisionProbability">Collision Probability</option>
+                <option value="debrisDensity">Debris Density</option>
+                <option value="trackingConfidence">Tracking Confidence</option>
+                <option value="positionError">Position Error</option>
+                <option value="timeToCA">Time to Closest Approach</option>
+                <option value="deltaV">ΔV Required</option>
+                <option value="fuelConsumption">Fuel Consumption</option>
+                <option value="maneuverDuration">Maneuver Duration</option>
+                <option value="detectionRange">Detection Range</option>
+                <option value="responseTime">Response Time</option>
+            </select>
+        </div>
+
+        <div class="sc-graph-summary" id="graphSummary">
+            <div>
+                <small>SELECTED PARAMETER</small>
+                <strong id="graphMetricName">Relative Velocity</strong>
+            </div>
+            <div>
+                <small>CURRENT VALUE</small>
+                <strong id="graphMetricValue">—</strong>
+            </div>
+            <div>
+                <small>SCENARIO</small>
+                <strong id="graphScenarioName">Nominal Orbital</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="sc-graph-layout">
+        <div class="sc-graph-card">
+            <div class="sc-graph-card-head">
+                <div>
+                    <h3 id="graphTitle">Relative Velocity</h3>
+                    <span id="graphDescription">Relative line-of-sight velocity during the selected scenario.</span>
+                </div>
+                <span class="sc-graph-type" id="graphType">LINE</span>
+            </div>
+            <div class="sc-chart-wrap">
+                <canvas id="scenarioMetricChart"></canvas>
+            </div>
+        </div>
+
+        <div class="sc-analysis-card">
+            <div class="sc-graph-card-head">
+                <div>
+                    <h3>Scenario Analysis</h3>
+                    <span>What the selected parameter means for FSOC tracking.</span>
+                </div>
+            </div>
+
+            <div class="sc-analysis-main">
+                <div class="sc-analysis-score" id="analysisLevel">MODERATE</div>
+                <h4 id="analysisHeadline">Stable tracking condition</h4>
+                <p id="analysisText">The selected parameter is within a manageable operating range for the current scenario.</p>
+            </div>
+
+            <div class="sc-analysis-list">
+                <div><span>Trend</span><b id="analysisTrend">—</b></div>
+                <div><span>Peak / Max</span><b id="analysisPeak">—</b></div>
+                <div><span>Minimum</span><b id="analysisMin">—</b></div>
+                <div><span>Operational effect</span><b id="analysisEffect">—</b></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sc-graph-note">
+        <span>ⓘ</span>
+        <div><b>Simulation note:</b> Values are prototype simulation data designed to show how the system responds differently to each operating scenario. They are not live orbital measurements.</div>
+    </div>
+</section>
+
+{% endblock %}
+
+
+<!-- TARGET LOST REPORT POPUP -->
+<div id="targetLostReportModal" class="target-lost-modal" aria-hidden="true">
+    <div class="target-lost-modal-card">
+        <div class="target-lost-modal-head">
+            <div><strong>⚠ TARGET LOST — INCIDENT REPORT</strong><small>Latest generated tracking report</small></div>
+            <button class="target-lost-close" onclick="closeTargetLostReport()">×</button>
+        </div>
+        <div class="target-lost-report-meta"><span id="targetLostReportTime">Incident detected</span><span>STATUS: TARGET LOST</span></div>
+        <iframe id="targetLostReportFrame" title="Target lost PDF preview"></iframe>
+        <div class="target-lost-modal-actions">
+            <a id="targetLostDownload" class="sc-btn danger" href="/reports/target-lost/pdf" download>⬇ DOWNLOAD PDF</a>
+            <button class="sc-btn" onclick="closeTargetLostReport()">CLOSE</button>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+
+
+
+
+<!-- ============================================================
+     GRAPHS & ANALYSIS
+     This section is intentionally below the complete Scenario View.
+     ============================================================ -->
+
+
+<script>
+(function(){
+
+"use strict";
+
+/* ============================================================
+   SCENARIO ENGINE
+   ============================================================ */
+
+const SCENARIOS = {
+
+    "Nominal Orbital": {
+
+        target:"FSOC Optical Beacon",
+        motion:"Smooth Orbital Drift",
+        motionRate:"0.18",
+        turbulence:"LOW",
+        vibration:"LOW",
+        noise:"LOW",
+        signal:"-46 dBm",
+
+        speed:0.42,
+        amplitudeX:150,
+        amplitudeY:72,
+
+        turbulenceAmount:0,
+        vibrationAmount:0,
+        noiseAmount:0,
+
+        brightness:1.0,
+
+        description:
+            "Stable orbital beacon with smooth continuous movement."
+
+    },
+
+
+    "Atmospheric Turbulence": {
+
+        target:"Turbulence-Affected Optical Beacon",
+        motion:"Turbulent Orbital Drift",
+        motionRate:"0.25",
+        turbulence:"HIGH",
+        vibration:"LOW",
+        noise:"HIGH",
+        signal:"-55 dBm",
+
+        speed:0.56,
+        amplitudeX:175,
+        amplitudeY:85,
+
+        turbulenceAmount:14,
+        vibrationAmount:1,
+        noiseAmount:0.24,
+
+        brightness:.88,
+
+        description:
+            "Atmospheric scintillation and random optical displacement."
+
+    },
+
+
+    "Platform Vibration": {
+
+        target:"Mobile FSOC Terminal Beacon",
+        motion:"Platform Micro-Jitter",
+        motionRate:"0.22",
+        turbulence:"MEDIUM",
+        vibration:"HIGH",
+        noise:"MEDIUM",
+        signal:"-51 dBm",
+
+        speed:0.50,
+        amplitudeX:125,
+        amplitudeY:65,
+
+        turbulenceAmount:3,
+        vibrationAmount:16,
+        noiseAmount:.14,
+
+        brightness:.95,
+
+        description:
+            "High-frequency platform vibration produces pointing jitter."
+
+    },
+
+
+    "Low Beacon SNR": {
+
+        target:"Low-SNR Optical Beacon",
+        motion:"Orbital Drift",
+        motionRate:"0.16",
+        turbulence:"MEDIUM",
+        vibration:"LOW",
+        noise:"HIGH",
+        signal:"-72 dBm",
+
+        speed:0.38,
+        amplitudeX:145,
+        amplitudeY:70,
+
+        turbulenceAmount:7,
+        vibrationAmount:2,
+        noiseAmount:.46,
+
+        brightness:.38,
+
+        description:
+            "Weak optical beacon with reduced signal-to-noise ratio."
+
+    },
+
+
+    "Fast Target Motion": {
+
+        target:"High-Speed FSOC Beacon",
+        motion:"FAST ANGULAR MOTION",
+        motionRate:"2.15",
+        turbulence:"LOW",
+        vibration:"MEDIUM",
+        noise:"MEDIUM",
+        signal:"-50 dBm",
+
+        /*
+           Dedicated fast-motion profile.
+           speed is the actual phase rate used by the camera trajectory.
+        */
+        speed:2.15,
+        velocityScale:1.0,
+        amplitudeX:170,
+        amplitudeY:92,
+
+        turbulenceAmount:3,
+        vibrationAmount:7,
+        noiseAmount:.10,
+
+        brightness:1.0,
+
+        description:
+            "High angular-rate target requiring predictive tracking."
+
+    },
+
+    "Target Lost": {
+        target:"Occluded FSOC Optical Beacon",
+        motion:"BEACON LOSS / REACQUISITION",
+        motionRate:"0.00",
+        turbulence:"MEDIUM",
+        vibration:"LOW",
+        noise:"HIGH",
+        signal:"-- dBm",
+        speed:0.44,
+        amplitudeX:145,
+        amplitudeY:70,
+        turbulenceAmount:4,
+        vibrationAmount:2,
+        noiseAmount:.55,
+        brightness:.42,
+        description:"Target beacon disappears from the optical field, triggering siren and incident-report generation."
+    }
+
+};
+
+
+/* ============================================================
+   STATE
+   ============================================================ */
+
+let selectedScenario = "Nominal Orbital";
+
+let running = false;
+
+let reacquiring = false;
+
+let targetVisible = true;
+let targetLostStartedAt = 0;
+let targetLostReportShown = false;
+let sirenActive = false;
+let sirenContext = null;
+let sirenOscillator = null;
+let sirenGain = null;
+let sirenTimer = null;
+let targetLostTimer = null;
+let targetLostGeneration = 0;
+
+let target = {
+    x:480,
+    y:270,
+    vx:0,
+    vy:0,
+    speedPixelsPerSecond:0
+};
+
+let previousPhysicsTargetX = 480;
+let previousPhysicsTargetY = 270;
+let previousPhysicsTime = performance.now();
+
+/*
+   RENDER-ONLY previous target position.
+   drawBeacon() uses this for the Fast Target Motion optical streak.
+   The old build referenced previousTargetX/previousTargetY without
+   declaring them, which raised a ReferenceError and stopped the
+   animation loop when Fast Target Motion was selected.
+*/
+let previousTargetX = 480;
+let previousTargetY = 270;
+
+let gimbal = {
+    x:0,
+    y:0,
+    vx:0,
+    vy:0
+};
+
+let previousGraphGimbalX = 0;
+let previousGraphGimbalY = 0;
+let previousGraphGimbalTime = performance.now();
+
+/* Smoothed live relative velocity used by the graph and derived metrics. */
+let liveRelativeVelocity = 0;
+
+let detection = {
+    found:false,
+    confidence:0,
+    x:0,
+    y:0,
+    error:99,
+    h:99,
+    v:99
+};
+
+let trail = [];
+
+let startTime = 0;
+
+let lockStart = 0;
+
+let lastFrame = performance.now();
+
+let frameCounter = 0;
+
+let fps = 30;
+
+let reacquireTimer = 0;
+
+let lockStableFrames = 0;
+
+let canvas;
+let ctx;
+
+let W = 960;
+let H = 540;
+
+
+
+/* ============================================================
+   LIVE GRAPH TELEMETRY BRIDGE
+   The graph panel consumes the same live camera/detector state
+   used by the Scenario View. No independent random graph dataset.
+   ============================================================ */
+
+window.scenarioGraphLive = {
+    scenario: "Nominal Orbital",
+    history: {},
+    last: {},
+    reset: function(name){
+        this.scenario = name;
+        this.history = {};
+        this.last = {};
+    },
+    push: function(snapshot){
+        const keys = Object.keys(snapshot);
+        keys.forEach(key=>{
+            if(!this.history[key]) this.history[key]=[];
+            this.history[key].push(snapshot[key]);
+            if(this.history[key].length>60) this.history[key].shift();
+        });
+        this.last = snapshot;
+        this.scenario = selectedScenario;
+    }
+};
+
+function publishGraphTelemetry(now){
+
+    const p = SCENARIOS[selectedScenario];
+
+    /* ========================================================
+       LIVE GRAPH TELEMETRY
+       Every metric below is derived from the SAME live target,
+       gimbal and detector state that drives the camera.
+       No random graph dataset is used.
+       ======================================================== */
+
+    const dx = target.x - gimbal.x;
+    const dy = target.y - gimbal.y;
+    const pixelSeparation = Math.hypot(dx, dy);
+
+    /* Live gimbal velocity. */
+    const gdt = Math.max((now - previousGraphGimbalTime) / 1000, 0.001);
+    gimbal.vx = (gimbal.x - previousGraphGimbalX) / gdt;
+    gimbal.vy = (gimbal.y - previousGraphGimbalY) / gdt;
+    previousGraphGimbalX = gimbal.x;
+    previousGraphGimbalY = gimbal.y;
+    previousGraphGimbalTime = now;
+
+    const rvx = (target.vx || 0) - (gimbal.vx || 0);
+    const rvy = (target.vy || 0) - (gimbal.vy || 0);
+    const relativePixelSpeed = Math.hypot(rvx, rvy);
+
+    /* Positive closing speed means target geometry is getting tighter. */
+    const closingPixelSpeed = pixelSeparation > 0
+        ? Math.max(0, -(dx * rvx + dy * rvy) / pixelSeparation)
+        : 0;
+
+    /*
+       Camera geometry: 42° horizontal FOV over 960 px.
+       Use an explicit illustrative encounter range so the live
+       pixel motion becomes a meaningful orbital velocity estimate.
+    */
+    /*
+       Camera geometry used by the prototype.  A smaller reference range
+       keeps fast-target motion inside the useful graph range instead of
+       immediately hitting the old 25 km/s ceiling.
+    */
+    const encounterRangeKm = 50;
+    const cameraWidthKm =
+        2 * encounterRangeKm * Math.tan((42 * Math.PI / 180) / 2);
+    const kmPerPixel = cameraWidthKm / W;
+
+    /*
+       Live relative velocity = target velocity - gimbal velocity.
+       Apply a small low-pass filter so frame-to-frame browser timing does
+       not make the fast-motion graph flicker.
+    */
+    let rawRelativeVelocity = relativePixelSpeed * kmPerPixel;
+
+    /*
+       Fast Target Motion must remain visibly faster than the other
+       scenarios even when the predictive gimbal is following the target.
+       We therefore blend in the target's measured physical pixel speed
+       rather than allowing gimbal compensation to cancel the signal.
+       This is still live data: target.vx/target.vy come directly from the
+       running scenario camera physics.
+    */
+    if(selectedScenario === 'Fast Target Motion'){
+        const targetOnlyVelocity =
+            target.speedPixelsPerSecond * kmPerPixel;
+
+        /*
+           Fast mode must reflect actual measured target motion, not just
+           residual target-minus-gimbal error.
+        */
+        rawRelativeVelocity =
+            targetOnlyVelocity * 0.80 +
+            rawRelativeVelocity * 0.20;
+    }
+
+    liveRelativeVelocity =
+        lerp(
+            liveRelativeVelocity || rawRelativeVelocity,
+            rawRelativeVelocity,
+            selectedScenario === 'Fast Target Motion' ? 0.42 : 0.16
+        );
+
+    const relativeVelocity = clamp(
+        liveRelativeVelocity,
+        0.01,
+        30
+    );
+
+    /* Live closest-separation estimate. */
+    const missDistance = clamp(
+        pixelSeparation * kmPerPixel,
+        0.05,
+        80
+    );
+
+    const trackingConfidence = clamp(
+        detection.found
+            ? Number(detection.confidence)
+            : 25 + (1 - p.noiseAmount) * 45,
+        0,
+        100
+    );
+
+    /* Position uncertainty comes directly from the detector error. */
+    const positionError = clamp(
+        (detection.found
+            ? Math.abs(Number(detection.error || 0))
+            : pixelSeparation / 25) * 18 +
+        p.noiseAmount * 35 +
+        p.vibrationAmount * 0.9 +
+        p.turbulenceAmount * 0.8,
+        0,
+        300
+    );
+
+    /*
+       LIVE collision probability.
+       Smaller miss distance + higher closing speed + lower confidence
+       increases the risk. This changes every time the camera state changes.
+    */
+    const proximityRisk = clamp(1 - missDistance / 10, 0, 1);
+    const speedRisk = clamp(relativeVelocity / 12, 0, 1);
+    const closingRisk = clamp(closingPixelSpeed * kmPerPixel / 8, 0, 1);
+    const confidenceRisk = 1 - trackingConfidence / 100;
+    const uncertaintyRisk = clamp(positionError / 180, 0, 1);
+
+    const collisionProbability = clamp(
+        100 * (
+            proximityRisk * 0.34 +
+            speedRisk * 0.30 +
+            closingRisk * 0.18 +
+            confidenceRisk * 0.10 +
+            uncertaintyRisk * 0.08
+        ),
+        0,
+        100
+    );
+
+    /* Scenario + live camera target load. */
+    const debrisDensity = clamp(
+        Math.round(
+            8 +
+            p.turbulenceAmount * 0.8 +
+            p.vibrationAmount * 0.55 +
+            p.noiseAmount * 30 +
+            relativePixelSpeed * 0.08
+        ),
+        5,
+        100
+    );
+
+    /* Live time-to-closest-approach. */
+    const elapsed = Math.max((now - startTime) / 1000, 0);
+    const baseWindow =
+        selectedScenario === 'Fast Target Motion' ? 18 :
+        selectedScenario === 'Atmospheric Turbulence' ? 32 :
+        40;
+
+    const timeToCASeconds = clamp(
+        baseWindow - (elapsed % baseWindow),
+        0.5,
+        baseWindow
+    );
+
+    const timeToCA = timeToCASeconds / 60;
+
+    /* ========================================================
+       LIVE MANEUVER MODEL
+       These values are derived from the live encounter state.
+       They are not random/static scenario constants.
+       ======================================================== */
+
+    /* Required safe separation for this prototype. */
+    const requiredSafeDistanceKm = 2.0;
+    const separationDeficit = Math.max(
+        0,
+        requiredSafeDistanceKm - missDistance
+    );
+
+    /*
+       ΔV rises when the encounter is tighter, faster and less certain.
+       A small continuous time-to-CA factor makes it react as the window
+       closes instead of remaining constant.
+    */
+    const urgencyFactor = clamp(
+        1 - timeToCASeconds / baseWindow,
+        0,
+        1
+    );
+
+    const fastMotionManeuverFactor =
+        selectedScenario === 'Fast Target Motion' ? 1.20 : 1.0;
+
+    const deltaV = clamp(
+        (
+            0.025 +
+            separationDeficit * 0.18 +
+            relativeVelocity * 0.055 +
+            closingPixelSpeed * kmPerPixel * 0.022 +
+            positionError * 0.004 +
+            collisionProbability * 0.006 +
+            urgencyFactor * 0.12
+        ) * fastMotionManeuverFactor,
+        0.02,
+        3.0
+    );
+
+    /* Propellant estimate increases non-linearly with ΔV. */
+    const fuelConsumption = clamp(
+        0.015 +
+        deltaV * 0.24 +
+        deltaV * deltaV * 0.045,
+        0.01,
+        1.5
+    );
+
+    /* More ΔV and more uncertainty require longer execution. */
+    const maneuverDuration = clamp(
+        2.0 +
+        deltaV * 5.5 +
+        positionError * 0.025 +
+        (100 - trackingConfidence) * 0.035,
+        2,
+        35
+    );
+
+    /* Effective range responds to live confidence/noise/error. */
+    const detectionRange = clamp(
+        350 +
+        trackingConfidence * 5.5 -
+        positionError * 1.15 -
+        p.noiseAmount * 180,
+        150,
+        1000
+    );
+
+    /* Response time is tied to the same live detection condition. */
+    const responseTime = clamp(
+        0.45 +
+        (100 - trackingConfidence) * 0.025 +
+        positionError * 0.018 +
+        collisionProbability * 0.006 +
+        (detection.found ? 0 : 1.6),
+        0.4,
+        15
+    );
+
+    window.scenarioGraphLive.push({
+        relativeVelocity,
+        missDistance,
+        collisionProbability,
+        debrisDensity,
+        trackingConfidence,
+        positionError,
+        timeToCA,
+        deltaV,
+        fuelConsumption,
+        maneuverDuration,
+        detectionRange,
+        responseTime
+    });
+}
+
+window.scenarioGraphLive.reset(selectedScenario);
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+
+function $(id){
+    return document.getElementById(id);
+}
+
+
+function clamp(v,min,max){
+    return Math.max(min,Math.min(max,v));
+}
+
+
+function lerp(a,b,t){
+    return a+(b-a)*t;
+}
+
+
+function rand(min,max){
+    return min+Math.random()*(max-min);
+}
+
+
+function gaussian(){
+
+    let u=0;
+    let v=0;
+
+    while(u===0) u=Math.random();
+    while(v===0) v=Math.random();
+
+    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+
+
+function addEvent(message,type=""){
+
+    const box=$("eventBox");
+
+    if(!box) return;
+
+    const row=document.createElement("div");
+
+    row.className="event "+type;
+
+    const tag =
+        type==="success" ? "LOCK" :
+        type==="warn" ? "WARN" :
+        type==="error" ? "ERR" :
+        "AI";
+
+    row.innerHTML =
+        "<b>"+tag+"</b> "+
+        escapeHTML(message);
+
+    box.prepend(row);
+
+    while(box.children.length>15){
+        box.removeChild(box.lastChild);
+    }
+}
+
+
+function escapeHTML(value){
+
+    return String(value)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+
+}
+
+
+/* ============================================================
+   TARGET LOST ALARM + PDF REPORT
+   ============================================================ */
+function initTargetLostSiren(){
+    try{
+        const AC=window.AudioContext||window.webkitAudioContext;
+        if(!AC) return;
+        if(!sirenContext) sirenContext=new AC();
+        if(sirenContext.state==="suspended"){
+            sirenContext.resume().catch(()=>{});
+        }
+    }catch(e){}
+}
+
+function activateTargetLostAlarm(){
+    if(selectedScenario!=="Target Lost" || !running || targetVisible){
+        return;
+    }
+
+    if(sirenActive) return;
+
+    sirenActive=true;
+
+    const banner=$("targetLostBanner");
+    if(banner) banner.classList.add("active");
+
+    $("hudState").textContent="STATUS: ⚠ TARGET LOST";
+    $("cameraStatusText").textContent="TARGET LOST · SIREN ACTIVE · AUTOMATIC REACQUISITION";
+    $("phasePill").textContent="TARGET LOST";
+    $("phasePill").className="sc-pill danger";
+    $("lockPill").textContent="TARGET LOST";
+    $("lockPill").className="sc-pill danger";
+    $("lockBanner").style.display="none";
+
+    addEvent(
+        "TARGET LOST · optical beacon disappeared · alarm active",
+        "error"
+    );
+
+    try{
+        initTargetLostSiren();
+        if(!sirenContext) return;
+
+        const osc=sirenContext.createOscillator();
+        const gain=sirenContext.createGain();
+
+        osc.type="sine";
+        osc.frequency.value=980;
+        gain.gain.value=.0001;
+
+        osc.connect(gain);
+        gain.connect(sirenContext.destination);
+        osc.start();
+
+        gain.gain.exponentialRampToValueAtTime(
+            .055,
+            sirenContext.currentTime+.04
+        );
+
+        sirenOscillator=osc;
+        sirenGain=gain;
+
+        let high=true;
+
+        sirenTimer=setInterval(()=>{
+            if(
+                !sirenOscillator ||
+                !sirenContext ||
+                !sirenActive ||
+                selectedScenario!=="Target Lost" ||
+                !running
+            ){
+                return;
+            }
+
+            high=!high;
+
+            const t=sirenContext.currentTime;
+
+            sirenOscillator.frequency.cancelScheduledValues(t);
+            sirenOscillator.frequency.setTargetAtTime(
+                high?980:620,
+                t,
+                .07
+            );
+        },220);
+
+    }catch(e){}
+}
+
+function deactivateTargetLostAlarm(){
+    sirenActive=false;
+
+    const banner=$("targetLostBanner");
+    if(banner) banner.classList.remove("active");
+
+    if(sirenTimer){
+        clearInterval(sirenTimer);
+        sirenTimer=null;
+    }
+
+    try{
+        if(sirenGain && sirenContext){
+            const t=sirenContext.currentTime;
+            sirenGain.gain.cancelScheduledValues(t);
+            sirenGain.gain.setValueAtTime(.0001,t);
+        }
+        if(sirenOscillator){
+            try{sirenOscillator.stop();}catch(e){}
+            try{sirenOscillator.disconnect();}catch(e){}
+        }
+        if(sirenGain){
+            try{sirenGain.disconnect();}catch(e){}
+        }
+    }catch(e){}
+
+    sirenOscillator=null;
+    sirenGain=null;
+}
+
+function showTargetLostNotification(reportReady=null){
+    const notice=$("targetLostNotification");
+    if(!notice) return;
+    const body=$("targetLostNoticeBody");
+    const status=$("targetLostReportStatus");
+    const preview=$("targetLostNotification").querySelector(".target-lost-notice-btn.primary");
+
+    if(reportReady === true){
+        if(body) body.textContent="The Target Lost incident has been recorded. The incident report is generated and ready to preview or download.";
+        if(status){ status.textContent="REPORT: GENERATED · READY"; status.className="target-lost-report-status ready"; }
+        if(preview){ preview.disabled=false; preview.style.opacity="1"; preview.style.pointerEvents="auto"; }
+    }else if(reportReady === false){
+        if(body) body.textContent="The Target Lost incident has been recorded, but the incident report could not be generated.";
+        if(status){ status.textContent="REPORT: GENERATION FAILED"; status.className="target-lost-report-status error"; }
+        if(preview){ preview.disabled=true; preview.style.opacity=".45"; preview.style.pointerEvents="none"; }
+    }else{
+        if(body) body.textContent="The Target Lost incident has been recorded. The incident report is being generated.";
+        if(status){ status.textContent="REPORT: GENERATING..."; status.className="target-lost-report-status"; }
+        if(preview){ preview.disabled=true; preview.style.opacity=".55"; preview.style.pointerEvents="none"; }
+    }
+
+    notice.classList.add("show");
+    notice.setAttribute("aria-hidden","false");
+}
+
+window.dismissTargetLostNotification=function(){
+    const notice=$("targetLostNotification");
+    if(!notice) return;
+    notice.classList.remove("show");
+    notice.setAttribute("aria-hidden","true");
+};
+
+window.previewTargetLostReport=function(){
+    /*
+       Preview is a deliberate second step. The notification is the first
+       response; the PDF iframe is not loaded until the operator asks for it.
+    */
+    const modal=$("targetLostReportModal");
+    const frame=$("targetLostReportFrame");
+    const download=$("targetLostDownload");
+
+    if(!modal || !frame || !download) return;
+
+    const cacheBust=Date.now();
+    const previewUrl="/reports/target-lost/pdf/preview?case=target-lost&t="+cacheBust;
+    const downloadUrl="/reports/target-lost/pdf?case=target-lost&t="+cacheBust;
+
+    $("targetLostReportTime").textContent=
+        "Incident detected · "+new Date().toLocaleString();
+
+    modal.classList.add("active");
+    modal.style.display="flex";
+    modal.setAttribute("aria-hidden","false");
+
+    frame.src=previewUrl;
+    download.href=downloadUrl;
+
+    window.dismissTargetLostNotification();
+};
+
+window.closeTargetLostReport=function(){
+    const modal=$("targetLostReportModal");
+    if(!modal) return;
+
+    modal.classList.remove("active");
+    modal.style.display="none";
+    modal.setAttribute("aria-hidden","true");
+
+    const frame=$("targetLostReportFrame");
+    if(frame) frame.src="about:blank";
+};
+
+function resetTargetLostState(){
+    targetLostGeneration++;
+
+    if(targetLostTimer){
+        clearTimeout(targetLostTimer);
+        targetLostTimer=null;
+    }
+
+    targetVisible=true;
+    targetLostStartedAt=0;
+    targetLostReportShown=false;
+
+    deactivateTargetLostAlarm();
+
+    const notice=$("targetLostNotification");
+    if(notice){
+        notice.classList.remove("show");
+        notice.setAttribute("aria-hidden","true");
+        const body=$("targetLostNoticeBody");
+        const status=$("targetLostReportStatus");
+        const preview=notice.querySelector(".target-lost-notice-btn.primary");
+        if(body) body.textContent="The Target Lost incident has been recorded. The incident report is being generated.";
+        if(status){ status.textContent="REPORT: GENERATING..."; status.className="target-lost-report-status"; }
+        if(preview){ preview.disabled=false; preview.style.opacity="1"; preview.style.pointerEvents="auto"; }
+    }
+
+    const modal=$("targetLostReportModal");
+    if(modal){
+        modal.classList.remove("active");
+        modal.style.display="none";
+        modal.setAttribute("aria-hidden","true");
+    }
+
+    const frame=$("targetLostReportFrame");
+    if(frame) frame.src="about:blank";
+}
+
+async function syncTargetLostBackend(action){
+    try{
+        const response=await fetch("/api/scenario/target-lost",{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                action:action,
+                scenario:selectedScenario,
+                telemetry: {
+                    horizontal_error: Number(detection.h || 0),
+                    vertical_error: Number(detection.v || 0),
+                    total_error: Number(detection.error || 0),
+                    confidence: Number(detection.confidence || 0),
+                    signal_dbm: $("signalValue") ? $("signalValue").textContent : "--",
+                    alignment_score: $("alignmentScore") ? $("alignmentScore").textContent : "--",
+                    phase: "TARGET LOST"
+                }
+            })
+        });
+
+        const data=await response.json().catch(()=>({}));
+
+        if(!response.ok){
+            throw new Error(data.reason || data.error || "Target Lost backend sync failed");
+        }
+
+        return data;
+
+    }catch(error){
+        addEvent(
+            "Target Lost backend sync unavailable; local alert remains active",
+            "warn"
+        );
+        return {ok:false,error:String(error)};
+    }
+}
+
+function triggerTargetLost(){
+    if(
+        selectedScenario!=="Target Lost" ||
+        !running ||
+        targetLostStartedAt
+    ){
+        return;
+    }
+
+    targetVisible=false;
+    targetLostStartedAt=performance.now();
+    targetLostReportShown=false;
+
+    const generation=++targetLostGeneration;
+
+    activateTargetLostAlarm();
+
+    /*
+       FIRST STEP: show the Target Lost notification only.
+       The PDF preview is never opened automatically. The Preview button is
+       enabled only after Flask confirms that the incident report is ready.
+    */
+    showTargetLostNotification(null);
+
+    /*
+       Send the current Target Lost telemetry to Flask. The backend generates
+       one incident report for this loss event and returns its ready state.
+    */
+    syncTargetLostBackend("lost").then(function(result){
+        if(generation !== targetLostGeneration || selectedScenario !== "Target Lost") return;
+        showTargetLostNotification(result && result.report_ready === true);
+    }).catch(function(){
+        if(generation !== targetLostGeneration || selectedScenario !== "Target Lost") return;
+        showTargetLostNotification(false);
+    });
+
+    if(targetLostTimer){
+        clearTimeout(targetLostTimer);
+        targetLostTimer=null;
+    }
+}
+
+function recoverFromTargetLost(){
+    if(
+        selectedScenario!=="Target Lost" ||
+        !targetLostStartedAt
+    ){
+        return;
+    }
+
+    if(targetLostTimer){
+        clearTimeout(targetLostTimer);
+        targetLostTimer=null;
+    }
+
+    targetVisible=true;
+    targetLostStartedAt=0;
+
+    deactivateTargetLostAlarm();
+
+    syncTargetLostBackend("recovered");
+
+    reacquiring=true;
+
+    addEvent(
+        "Automatic reacquisition initiated",
+        "warn"
+    );
+}
+
+
+/* ============================================================
+   SELECT SCENARIO
+   ============================================================ */
+
+window.selectScenario = async function(name){
+
+    if(!SCENARIOS[name]) return;
+
+    /*
+       Scenario changes are a hard boundary for Target Lost.
+       Stop the old siren and close the old report BEFORE changing
+       selectedScenario, so the alert can never leak into another mode.
+    */
+    resetTargetLostState();
+
+    selectedScenario=name;
+
+    document.querySelectorAll(".scenario-card").forEach(card=>{
+        card.classList.toggle(
+            "active",
+            card.dataset.scenario===name
+        );
+    });
+
+    updateProfile();
+
+    try{
+        const response=await fetch("/api/scenario",{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                scenario:name
+            })
+        });
+
+        if(!response.ok){
+            throw new Error("Scenario sync failed");
+        }
+
+    }catch(error){
+
+        addEvent(
+            "Backend scenario sync unavailable; virtual scenario remains active",
+            "warn"
+        );
+
+    }
+
+    resetScenario();
+
+    previousPhysicsTargetX=target.x;
+    previousPhysicsTargetY=target.y;
+    previousPhysicsTime=performance.now();
+
+    target.vx=0;
+    target.vy=0;
+    target.speedPixelsPerSecond=0;
+
+    window.scenarioGraphLive.reset(name);
+
+    /*
+       If the operator changes into Target Lost while the camera
+       is already running, start a fresh 4.5-second loss cycle.
+       Other scenarios never start the Target Lost timer.
+    */
+    if(running){
+        startTime=performance.now();
+    }
+
+    if(name === 'Fast Target Motion'){
+        addEvent(
+            'FAST TARGET MODE · high-rate target trajectory enabled',
+            'warn'
+        );
+    }
+
+    if(name === 'Target Lost'){
+        addEvent(
+            'TARGET LOST MODE ARMED · beacon-loss alarm will trigger automatically',
+            'warn'
+        );
+    }
+
+    addEvent(
+        "Scenario changed → "+name,
+        "success"
+    );
+
+    if(running){
+
+        await startBackendSession();
+
+        addEvent(
+            "New scenario physics loaded into live camera",
+            "success"
+        );
+
+    }
+};
+
+
+/* ============================================================
+   PROFILE UI
+   ============================================================ */
+
+function updateProfile(){
+
+    const p=SCENARIOS[selectedScenario];
+
+    $("analyticsScenario").textContent=selectedScenario;
+
+    $("hudScenario").textContent=
+        "SCENARIO: "+selectedScenario.toUpperCase();
+
+    $("pTarget").textContent=p.target;
+
+    $("pMotion").textContent=p.motion;
+
+    $("pMotionRate").textContent=p.motionRate;
+
+    $("pTurbulence").textContent=p.turbulence;
+
+    $("pVibration").textContent=p.vibration;
+
+    $("pNoise").textContent=p.noise;
+
+    $("pSignal").textContent=p.signal;
+
+    $("phaseDescription").textContent=p.description;
+
+    $("profileStatus").textContent="PROFILE LOADED";
+
+}
+
+
+/* ============================================================
+   RESET SCENARIO PHYSICS
+   ============================================================ */
+
+function resetScenario(){
+
+    const p=SCENARIOS[selectedScenario];
+
+    const cx=W/2;
+    const cy=H/2;
+
+    target.x=
+        cx+
+        rand(-p.amplitudeX*.75,p.amplitudeX*.75);
+
+    target.y=
+        cy+
+        rand(-p.amplitudeY*.75,p.amplitudeY*.75);
+
+    target.vx=0;
+    target.vy=0;
+    target.speedPixelsPerSecond=0;
+
+    /* Reset the velocity measurement baseline as part of the physics reset.
+       This prevents the first frame after switching scenarios from using
+       the previous scenario's coordinates/time. */
+    previousPhysicsTargetX=target.x;
+    previousPhysicsTargetY=target.y;
+    previousPhysicsTime=performance.now();
+
+    /* Reset render-only streak baseline. */
+    previousTargetX=target.x;
+    previousTargetY=target.y;
+
+    /*
+       Start gimbal away from target.
+       This creates visible acquisition and alignment.
+    */
+
+    gimbal.x=
+        target.x+
+        rand(-180,180);
+
+    gimbal.y=
+        target.y+
+        rand(-120,120);
+
+    gimbal.vx=0;
+    gimbal.vy=0;
+    previousGraphGimbalX = gimbal.x;
+    previousGraphGimbalY = gimbal.y;
+    previousGraphGimbalTime = performance.now();
+    liveRelativeVelocity = 0;
+
+    detection.found=false;
+
+    trail=[];
+
+    lockStableFrames=0;
+
+    reacquiring=false;
+
+    $("lockBanner").style.display="none";
+
+    $("phasePill").textContent="SEARCHING";
+
+    $("lockPill").textContent="UNLOCKED";
+
+    $("hudState").textContent=
+        "STATUS: SEARCHING";
+
+    $("cameraStatusText").textContent=
+        "AI SEARCHING FOR BEACON";
+
+    $("lockProgress").style.width="0%";
+
+    $("metricDetection").textContent="SEARCHING";
+
+    $("metricLock").textContent="NO";
+
+    $("metricConfidence").textContent="--%";
+
+    $("metricError").textContent="--°";
+
+    $("metricH").textContent="--°";
+
+    $("metricV").textContent="--°";
+
+    $("statTracked").textContent="0";
+
+    $("statConfidence").textContent="--%";
+
+    $("statError").textContent="--°";
+
+}
+
+
+/* ============================================================
+   BACKEND SESSION
+   ============================================================ */
+
+async function startBackendSession(){
+
+    try{
+
+        await fetch("/api/session/start",{
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify({
+
+                mode:"auto-align",
+
+                scenario:selectedScenario
+
+            })
+
+        });
+
+    }catch(error){
+
+        /*
+           Frontend virtual camera continues even if the
+           Flask simulator is temporarily unavailable.
+        */
+
+    }
+
+}
+
+
+/* ============================================================
+   START
+   ============================================================ */
+
+window.startScenario = async function(){
+
+    if(running){
+
+        return;
+
+    }
+
+    running=true;
+
+    startTime=performance.now();
+
+    startBackendSession();
+
+    resetTargetLostState();
+    resetScenario();
+
+    $("systemStatus").textContent="● LIVE";
+
+    $("systemStatus").className=
+        "sc-pill green";
+
+    $("aiStatus").textContent=
+        "AI: TRACKING";
+
+    $("cameraStatus").textContent=
+        "CAMERA: VIRTUAL LIVE";
+
+    $("cameraStatus").className=
+        "sc-pill blue";
+
+    addEvent(
+        "Live AI camera started · "+selectedScenario,
+        "success"
+    );
+
+    addEvent(
+        "Beacon detection pipeline initialized"
+    );
+
+};
+
+
+/* ============================================================
+   STOP
+   ============================================================ */
+
+window.stopScenario = async function(){
+
+    running=false;
+
+    reacquiring=false;
+    resetTargetLostState();
+
+    try{
+
+        await fetch("/api/session/stop",{
+            method:"POST"
+        });
+
+    }catch(error){}
+
+    $("systemStatus").textContent=
+        "● STANDBY";
+
+    $("systemStatus").className=
+        "sc-pill green";
+
+    $("aiStatus").textContent=
+        "AI: READY";
+
+    $("cameraStatus").textContent=
+        "CAMERA: VIRTUAL";
+
+    $("phasePill").textContent=
+        "SEARCHING";
+
+    $("lockPill").textContent=
+        "UNLOCKED";
+
+    $("hudState").textContent=
+        "STATUS: STANDBY";
+
+    $("cameraStatusText").textContent=
+        "WAITING FOR SCENARIO";
+
+    $("lockBanner").style.display=
+        "none";
+
+    addEvent(
+        "AI tracking stopped",
+        "warn"
+    );
+
+};
+
+
+/* ============================================================
+   CENTRE TARGET
+   ============================================================ */
+
+window.centerTarget = function(){
+
+    /*
+       This commands the virtual camera/gimbal toward the
+       current beacon instead of teleporting the beacon.
+    */
+
+    gimbal.x=target.x;
+    gimbal.y=target.y;
+
+    addEvent(
+        "Centre command sent · gimbal boresight aligned"
+    );
+
+};
+
+
+/* ============================================================
+   REACQUIRE
+   ============================================================ */
+
+window.reacquireTarget = function(){
+
+    if(!running){
+
+        startScenario();
+
+    }
+
+    reacquiring=true;
+
+    reacquireTimer=0;
+
+    detection.found=false;
+
+    lockStableFrames=0;
+
+    $("lockBanner").style.display="none";
+
+    addEvent(
+        "Beacon lost · AI reacquisition sweep started",
+        "warn"
+    );
+
+};
+
+
+/* ============================================================
+   TARGET PHYSICS
+   ============================================================ */
+
+function updateTarget(t){
+
+    const p=SCENARIOS[selectedScenario];
+
+    if(selectedScenario==="Target Lost" && running){
+        const elapsed=(performance.now()-startTime)/1000;
+        if(!targetLostStartedAt && elapsed>=4.5) triggerTargetLost();
+        if(targetLostStartedAt && (performance.now()-targetLostStartedAt)/1000>=5.5) recoverFromTargetLost();
+    }
+
+    const cx=W/2;
+    const cy=H/2;
+
+
+    /*
+       Every scenario has a different physical motion model.
+    */
+
+    if(selectedScenario==="Nominal Orbital"){
+
+        target.x =
+            cx+
+            Math.sin(t*p.speed*.65)*p.amplitudeX+
+            Math.sin(t*p.speed*1.8)*25;
+
+        target.y =
+            cy+
+            Math.cos(t*p.speed*.48)*p.amplitudeY+
+            Math.sin(t*p.speed*1.35)*16;
+
+    }
+
+
+    else if(selectedScenario==="Atmospheric Turbulence"){
+
+        const baseX =
+            cx+
+            Math.sin(t*p.speed*.62)*p.amplitudeX;
+
+        const baseY =
+            cy+
+            Math.cos(t*p.speed*.51)*p.amplitudeY;
+
+        /*
+           Turbulence = rapidly changing optical displacement.
+        */
+
+        const turbX =
+            Math.sin(t*7.5)*p.turbulenceAmount+
+            Math.sin(t*13.2)*p.turbulenceAmount*.55+
+            gaussian()*p.turbulenceAmount*.5;
+
+        const turbY =
+            Math.cos(t*8.1)*p.turbulenceAmount*.75+
+            Math.sin(t*15.4)*p.turbulenceAmount*.35+
+            gaussian()*p.turbulenceAmount*.4;
+
+        target.x=baseX+turbX;
+        target.y=baseY+turbY;
+
+    }
+
+
+    else if(selectedScenario==="Platform Vibration"){
+
+        const baseX =
+            cx+
+            Math.sin(t*p.speed*.65)*p.amplitudeX;
+
+        const baseY =
+            cy+
+            Math.cos(t*p.speed*.55)*p.amplitudeY;
+
+        /*
+           High-frequency vibration is intentionally visible.
+        */
+
+        const vibX =
+            Math.sin(t*16.0)*p.vibrationAmount+
+            Math.sin(t*29.0)*p.vibrationAmount*.45;
+
+        const vibY =
+            Math.cos(t*18.0)*p.vibrationAmount+
+            Math.sin(t*31.0)*p.vibrationAmount*.4;
+
+        target.x=baseX+vibX;
+        target.y=baseY+vibY;
+
+    }
+
+
+    else if(selectedScenario==="Low Beacon SNR"){
+
+        target.x =
+            cx+
+            Math.sin(t*p.speed*.60)*p.amplitudeX+
+            Math.sin(t*2.2)*18;
+
+        target.y =
+            cy+
+            Math.cos(t*p.speed*.44)*p.amplitudeY+
+            Math.sin(t*1.8)*13;
+
+    }
+
+
+    else if(selectedScenario==="Fast Target Motion"){
+
+        /*
+           FAST TARGET MOTION — stable high-speed trajectory.
+
+           Do NOT use a very large angular rate here.  That makes the
+           sinusoidal target hit the camera boundaries, after which the
+           clamp() below freezes the target for several frames.  The old
+           implementation therefore produced artificial zero-velocity
+           intervals and the graph appeared broken.
+
+           This trajectory is deliberately bounded and differentiable:
+           - phase advances from elapsed scenario time
+           - target stays inside the camera
+           - instantaneous velocity remains continuous
+           - speed is substantially higher than Nominal Orbital
+        */
+        const elapsedFast = Math.max(0, (performance.now() - startTime) / 1000);
+        const phase = elapsedFast * p.speed;
+
+        /*
+           FAST TARGET = continuous bounded ellipse.
+           No random displacement and no boundary-dependent motion.
+           At p.speed=2.15 rad/s the target has a clearly higher
+           instantaneous speed than the other scenario profiles.
+        */
+        target.x = cx + Math.cos(phase) * 170;
+        target.y = cy + Math.sin(phase) * 92;
+
+    }
+
+    target.x=clamp(
+        target.x,
+        45,
+        W-45
+    );
+
+    target.y=clamp(
+        target.y,
+        55,
+        H-55
+    );
+
+
+    /* Measure actual target motion from the live scenario physics. */
+    const now = performance.now();
+    const dt = Math.max((now - previousPhysicsTime) / 1000, 0.001);
+
+    target.vx = (target.x - previousPhysicsTargetX) / dt;
+    target.vy = (target.y - previousPhysicsTargetY) / dt;
+    target.speedPixelsPerSecond = Math.hypot(target.vx, target.vy);
+
+    previousPhysicsTargetX = target.x;
+    previousPhysicsTargetY = target.y;
+    previousPhysicsTime = now;
+
+}
+
+
+/* ============================================================
+   GIMBAL TRACKING CONTROLLER
+   ============================================================ */
+
+function updateGimbal(){
+
+    const p=SCENARIOS[selectedScenario];
+
+    /*
+       Target velocity prediction.
+    */
+
+    const rawVX = target.vx;
+    const rawVY = target.vy;
+
+
+    /*
+       Prediction becomes stronger for fast target motion.
+    */
+
+    const predictionGain=
+        selectedScenario==="Fast Target Motion"
+            ? 0.28
+            : 1.25;
+
+
+    const predictedX=
+        target.x+
+        rawVX*predictionGain;
+
+    const predictedY=
+        target.y+
+        rawVY*predictionGain;
+
+
+    /*
+       Closed-loop gimbal servo.
+
+       The beacon itself moves continuously.
+       The camera/gimbal follows it.
+    */
+
+    let gain =
+        selectedScenario==="Fast Target Motion"
+            ? .11
+            : .13;
+
+
+    if(selectedScenario==="Platform Vibration"){
+        gain=.16;
+    }
+
+    if(selectedScenario==="Atmospheric Turbulence"){
+        gain=.14;
+    }
+
+    if(selectedScenario==="Low Beacon SNR"){
+        gain=.115;
+    }
+
+
+    /*
+       Reacquisition deliberately reduces tracking gain.
+    */
+
+    if(reacquiring){
+        gain=.035;
+
+        /*
+           Search sweep.
+        */
+
+        gimbal.x +=
+            Math.sin(reacquireTimer*.08)*5;
+
+        gimbal.y +=
+            Math.cos(reacquireTimer*.065)*3;
+
+    }
+
+
+    gimbal.x +=
+        (predictedX-gimbal.x)*gain;
+
+    gimbal.y +=
+        (predictedY-gimbal.y)*gain;
+
+
+    /*
+       Platform vibration affects the camera boresight.
+    */
+
+    if(p.vibrationAmount>0){
+
+        gimbal.x +=
+            Math.sin(performance.now()*.025)*
+            p.vibrationAmount*.10;
+
+        gimbal.y +=
+            Math.cos(performance.now()*.029)*
+            p.vibrationAmount*.10;
+
+    }
+
+
+    /*
+       Small mechanical damping.
+    */
+
+    gimbal.x=
+        lerp(
+            gimbal.x,
+            clamp(gimbal.x,30,W-30),
+            .03
+        );
+
+    gimbal.y=
+        lerp(
+            gimbal.y,
+            clamp(gimbal.y,40,H-40),
+            .03
+        );
+
+}
+
+
+/* ============================================================
+   AI DETECTOR
+   ============================================================ */
+
+function runDetector(){
+
+    const p=SCENARIOS[selectedScenario];
+
+    if(selectedScenario==="Target Lost" && !targetVisible){
+        detection.found=false;
+        detection.confidence=0;
+        detection.error=0;
+        return;
+    }
+
+    const dx=
+        target.x-gimbal.x;
+
+    const dy=
+        target.y-gimbal.y;
+
+    const distance=
+        Math.sqrt(dx*dx+dy*dy);
+
+
+    /*
+       Convert pixel error to camera angular error.
+    */
+
+    const hError=
+        dx/W*42;
+
+    const vError=
+        -dy/H*24;
+
+    const totalError=
+        Math.sqrt(
+            hError*hError+
+            vError*vError
+        );
+
+
+    /*
+       Low SNR occasionally makes the detector uncertain.
+    */
+
+    let detectionProbability=
+        1-p.noiseAmount*.45;
+
+
+    if(selectedScenario==="Low Beacon SNR"){
+
+        detectionProbability=
+            .72+
+            Math.sin(performance.now()/1000)*.12;
+
+    }
+
+
+    if(reacquiring){
+
+        /*
+           Reacquisition succeeds when search sweep passes
+           close enough to the target.
+        */
+
+        detectionProbability=
+            distance<190 ? .94 : .12;
+
+    }
+
+
+    const found =
+        distance<430 &&
+        Math.random()<detectionProbability;
+
+
+    if(found){
+
+        const measurementNoise=
+            p.noiseAmount*12;
+
+        const measuredX=
+            target.x+
+            gaussian()*measurementNoise;
+
+        const measuredY=
+            target.y+
+            gaussian()*measurementNoise;
+
+
+        let confidence=
+            99-
+            totalError*3-
+            p.noiseAmount*18+
+            gaussian()*1.1;
+
+
+        confidence=
+            clamp(confidence,45,99.8);
+
+
+        detection={
+            found:true,
+            x:measuredX,
+            y:measuredY,
+            confidence:confidence,
+            error:totalError,
+            h:hError,
+            v:vError
+        };
+
+
+        /*
+           Reacquisition completed.
+        */
+
+        if(reacquiring){
+
+            reacquiring=false;
+
+            addEvent(
+                "Beacon reacquired · continuous tracking restored",
+                "success"
+            );
+
+        }
+
+    }else{
+
+        detection.found=false;
+
+    }
+
+}
+
+
+/* ============================================================
+   PHASE CLASSIFICATION
+   ============================================================ */
+
+function getPhase(){
+
+    if(selectedScenario==="Target Lost" && !targetVisible){
+        return "TARGET LOST";
+    }
+
+    if(!detection.found){
+
+        return "SEARCHING";
+
+    }
+
+
+    if(reacquiring){
+
+        return "REACQUISITION";
+
+    }
+
+
+    const e=detection.error;
+
+
+    if(e>12){
+
+        return "SEARCHING";
+
+    }
+
+    if(e>6){
+
+        return "ACQUISITION";
+
+    }
+
+    if(e>2){
+
+        return "COARSE ALIGNMENT";
+
+    }
+
+    if(e>.5){
+
+        return "FINE ALIGNMENT";
+
+    }
+
+    return "FINE LOCK";
+
+}
+
+
+/* ============================================================
+   UPDATE UI FROM DETECTION
+   ============================================================ */
+
+let lastPhase="";
+
+function updateTrackingUI(){
+
+    const phase=getPhase();
+
+    if(phase==="TARGET LOST" && selectedScenario==="Target Lost" && running && !targetVisible){
+        activateTargetLostAlarm();
+    }
+
+    if(phase!==lastPhase){
+
+        lastPhase=phase;
+
+        addEvent(
+            "Tracking phase → "+phase
+        );
+
+    }
+
+
+    $("phasePill").textContent=phase;
+
+    $("phaseName").textContent=phase;
+
+
+    let progress=0;
+
+    if(phase==="SEARCHING"){
+        progress=10;
+    }
+
+    else if(phase==="ACQUISITION"){
+        progress=30;
+    }
+
+    else if(phase==="COARSE ALIGNMENT"){
+        progress=55;
+    }
+
+    else if(phase==="FINE ALIGNMENT"){
+        progress=82;
+    }
+
+    else if(phase==="FINE LOCK"){
+        progress=100;
+    }
+
+    else if(phase==="REACQUISITION"){
+        progress=20;
+    }
+
+
+    $("lockProgress").style.width=
+        progress+"%";
+
+
+    if(phase==="FINE LOCK"){
+
+        $("phasePill").className=
+            "sc-pill green";
+
+        $("lockPill").textContent=
+            "✓ FINE LOCK";
+
+        $("lockPill").className=
+            "sc-pill green";
+
+        $("lockBanner").style.display=
+            "block";
+
+        $("metricLock").textContent=
+            "YES";
+
+        $("metricLock").className=
+            "green";
+
+
+        if(lockStart===0){
+
+            lockStart=performance.now();
+
+            addEvent(
+                "FINE LOCK ACQUIRED · target centered",
+                "success"
+            );
+
+        }
+
+        lockStableFrames++;
+
+    }
+
+    else{
+
+        $("lockPill").textContent=
+            "UNLOCKED";
+
+        $("lockPill").className=
+            "sc-pill";
+
+        $("lockBanner").style.display=
+            "none";
+
+        $("metricLock").textContent=
+            "NO";
+
+        $("metricLock").className="";
+
+        lockStableFrames=0;
+
+    }
+
+
+    if(
+        phase==="COARSE ALIGNMENT" ||
+        phase==="FINE ALIGNMENT"
+    ){
+
+        $("phasePill").className=
+            "sc-pill blue";
+
+    }
+
+
+    if(
+        phase==="SEARCHING" ||
+        phase==="ACQUISITION" ||
+        phase==="REACQUISITION"
+    ){
+
+        $("phasePill").className=
+            "sc-pill amber";
+
+    }
+
+
+    if(detection.found){
+
+        $("metricDetection").textContent=
+            "DETECTED";
+
+        $("metricConfidence").textContent=
+            detection.confidence.toFixed(1)+"%";
+
+        $("metricError").textContent=
+            detection.error.toFixed(2)+"°";
+
+        $("metricH").textContent=
+            (detection.h>=0?"+":"")+
+            detection.h.toFixed(2)+"°";
+
+        $("metricV").textContent=
+            (detection.v>=0?"+":"")+
+            detection.v.toFixed(2)+"°";
+
+
+        $("statTracked").textContent=
+            "1";
+
+        $("statConfidence").textContent=
+            detection.confidence.toFixed(1)+"%";
+
+        $("statError").textContent=
+            detection.error.toFixed(2)+"°";
+
+        $("hudState").textContent=
+            "STATUS: "+phase;
+
+
+        if(phase==="FINE LOCK"){
+
+            $("cameraStatusText").textContent=
+                "TARGET LOCKED · BORESIGHT CENTRED";
+
+        }
+
+        else{
+
+            $("cameraStatusText").textContent=
+                "TRACKING TARGET · ERROR "+
+                detection.error.toFixed(2)+"°";
+
+        }
+
+    }
+
+    else{
+
+        $("metricDetection").textContent=
+            "NO DETECTION";
+
+        $("metricConfidence").textContent=
+            "--%";
+
+        $("metricError").textContent=
+            "--°";
+
+        $("metricH").textContent=
+            "--°";
+
+        $("metricV").textContent=
+            "--°";
+
+        $("statTracked").textContent=
+            "0";
+
+        $("statConfidence").textContent=
+            "--%";
+
+        $("hudState").textContent=
+            "STATUS: BEACON SEARCH";
+
+        $("cameraStatusText").textContent=
+            "SEARCHING OPTICAL BEACON";
+
+    }
+
+
+    /*
+       Tracking duration.
+    */
+
+    if(startTime){
+
+        const seconds=
+            Math.floor(
+                (performance.now()-startTime)/1000
+            );
+
+        const m=
+            String(
+                Math.floor(seconds/60)
+            ).padStart(2,"0");
+
+        const s=
+            String(
+                seconds%60
+            ).padStart(2,"0");
+
+        $("statDuration").textContent=
+            m+":"+s;
+
+    }
+
+}
+
+
+/* ============================================================
+   CAMERA DRAW
+   ============================================================ */
+
+function resizeCanvas(){
+
+    const rect=
+        canvas.getBoundingClientRect();
+
+    const dpr=
+        window.devicePixelRatio||1;
+
+    W=960;
+    H=540;
+
+    canvas.width=
+        W*dpr;
+
+    canvas.height=
+        H*dpr;
+
+    ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+    );
+
+}
+
+
+/* ============================================================
+   STAR FIELD
+   ============================================================ */
+
+const stars=[];
+
+for(let i=0;i<180;i++){
+
+    stars.push({
+
+        x:Math.random()*960,
+        y:Math.random()*540,
+        r:Math.random()*1.3+.2,
+        a:Math.random()*.7+.2
+
+    });
+
+}
+
+
+function drawBackground(t){
+
+    /*
+       Deep-space background.
+    */
+
+    const gradient=
+        ctx.createLinearGradient(
+            0,0,0,H
+        );
+
+    gradient.addColorStop(0,"#01070e");
+
+    gradient.addColorStop(.55,"#020b14");
+
+    gradient.addColorStop(1,"#06131f");
+
+    ctx.fillStyle=gradient;
+
+    ctx.fillRect(0,0,W,H);
+
+
+    /*
+       Stars.
+    */
+
+    stars.forEach((s,i)=>{
+
+        const x=
+            (s.x+
+             t*(0.8+i*.002))%
+            W;
+
+        const y=s.y;
+
+        const pulse=
+            .65+
+            .35*Math.sin(
+                t*.002+i
+            );
+
+        ctx.globalAlpha=
+            s.a*pulse;
+
+        ctx.fillStyle="#b7dfff";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            x,
+            y,
+            s.r,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+
+    });
+
+    ctx.globalAlpha=1;
+
+
+    /*
+       Earth horizon.
+       Makes the camera look like an orbital FSOC scene.
+    */
+
+    const earthY=
+        H+70+
+        Math.sin(t*.0003)*3;
+
+    const earth=
+        ctx.createRadialGradient(
+            W*.35,
+            earthY,
+            40,
+            W*.35,
+            earthY,
+            470
+        );
+
+    earth.addColorStop(0,"#214d6c");
+
+    earth.addColorStop(.55,"#102f4a");
+
+    earth.addColorStop(1,"#03101a");
+
+    ctx.fillStyle=earth;
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        W*.35,
+        earthY,
+        560,
+        160,
+        0,
+        Math.PI,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /*
+       Grid/radar.
+    */
+
+    ctx.strokeStyle=
+        "rgba(65,135,170,.08)";
+
+    ctx.lineWidth=1;
+
+    for(let x=0;x<W;x+=48){
+
+        ctx.beginPath();
+
+        ctx.moveTo(x,0);
+
+        ctx.lineTo(x,H);
+
+        ctx.stroke();
+
+    }
+
+    for(let y=0;y<H;y+=48){
+
+        ctx.beginPath();
+
+        ctx.moveTo(0,y);
+
+        ctx.lineTo(W,y);
+
+        ctx.stroke();
+
+    }
+
+}
+
+
+/* ============================================================
+   ATMOSPHERIC EFFECT
+   ============================================================ */
+
+function drawAtmosphericEffect(t){
+
+    const p=SCENARIOS[selectedScenario];
+
+    if(p.turbulenceAmount<=0){
+        return;
+    }
+
+
+    const strength=
+        p.turbulenceAmount;
+
+
+    for(let i=0;i<18;i++){
+
+        const x=
+            ((i*87)+
+            Math.sin(t*.003+i)*strength*5)
+            %W;
+
+        const y=
+            ((i*43)+
+            Math.cos(t*.002+i)*strength*3)
+            %H;
+
+        ctx.fillStyle=
+            "rgba(170,210,235,.025)";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            x,
+            y,
+            15+Math.sin(i+t*.003)*6,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+
+    }
+
+}
+
+
+/* ============================================================
+   DRAW BEACON
+   ============================================================ */
+
+function drawBeacon(t){
+    if(selectedScenario==="Target Lost" && !targetVisible) return;
+
+
+    const p=SCENARIOS[selectedScenario];
+
+    const x=target.x;
+
+    const y=target.y;
+
+
+    /*
+       Beacon scintillation.
+    */
+
+    let intensity=
+        p.brightness;
+
+
+    if(
+        selectedScenario==="Low Beacon SNR"
+    ){
+
+        intensity=
+            .25+
+            .20*
+            (
+                .5+
+                .5*
+                Math.sin(t*.012)
+            );
+
+    }
+
+
+    /*
+       Outer optical glow.
+    */
+
+    const glow=
+        ctx.createRadialGradient(
+            x,y,2,
+            x,y,42
+        );
+
+    glow.addColorStop(
+        0,
+        "rgba(190,240,255,"+
+        (.55*intensity)+")"
+    );
+
+    glow.addColorStop(
+        .35,
+        "rgba(70,180,255,"+
+        (.24*intensity)+")"
+    );
+
+    glow.addColorStop(
+        1,
+        "rgba(30,120,220,0)"
+    );
+
+    ctx.fillStyle=glow;
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y,
+        42,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /*
+       Optical beacon core.
+    */
+
+    ctx.fillStyle=
+        "rgba(255,255,255,"+
+        intensity+")";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y,
+        7,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /*
+       Beacon rings.
+    */
+
+    ctx.strokeStyle=
+        "rgba(110,215,255,"+
+        (.75*intensity)+")";
+
+    ctx.lineWidth=1.5;
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y,
+        17+
+        Math.sin(t*.005)*2,
+        0,
+        Math.PI*2
+    );
+
+    ctx.stroke();
+
+
+    ctx.strokeStyle=
+        "rgba(140,235,255,"+
+        (.35*intensity)+")";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y,
+        28+
+        Math.sin(t*.003)*3,
+        0,
+        Math.PI*2
+    );
+
+    ctx.stroke();
+
+
+    /*
+       Fast target motion leaves a visible optical streak.
+    */
+
+    if(
+        selectedScenario==="Fast Target Motion"
+    ){
+
+        const vx=
+            target.x-previousTargetX;
+
+        const vy=
+            target.y-previousTargetY;
+
+        ctx.strokeStyle=
+            "rgba(100,200,255,.35)";
+
+        ctx.lineWidth=3;
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            x-vx*5,
+            y-vy*5
+        );
+
+        ctx.lineTo(
+            x,
+            y
+        );
+
+        ctx.stroke();
+
+    }
+
+
+    /*
+       Low SNR noise particles around beacon.
+    */
+
+    if(
+        selectedScenario==="Low Beacon SNR"
+    ){
+
+        for(let i=0;i<16;i++){
+
+            const nx=
+                x+rand(-42,42);
+
+            const ny=
+                y+rand(-42,42);
+
+            ctx.fillStyle=
+                "rgba(130,190,220,.25)";
+
+            ctx.fillRect(
+                nx,
+                ny,
+                1,
+                1
+            );
+
+        }
+
+    }
+
+}
+
+
+/* ============================================================
+   DRAW BORESIGHT
+   ============================================================ */
+
+function drawBoresight(){
+
+    const cx=W/2;
+    const cy=H/2;
+
+
+    /*
+       Outer coarse gate = 2 degrees.
+       HFOV = 42 degrees.
+    */
+
+    const coarseRadius=
+        2/42*W;
+
+
+    /*
+       Fine gate = 0.5 degrees.
+    */
+
+    const fineRadius=
+        .5/42*W;
+
+
+    ctx.save();
+
+
+    ctx.strokeStyle=
+        "rgba(255,190,75,.42)";
+
+    ctx.lineWidth=1;
+
+    ctx.setLineDash([6,5]);
+
+    ctx.beginPath();
+
+    ctx.arc(
+        cx,
+        cy,
+        coarseRadius,
+        0,
+        Math.PI*2
+    );
+
+    ctx.stroke();
+
+
+    ctx.strokeStyle=
+        "rgba(87,237,154,.55)";
+
+    ctx.setLineDash([3,4]);
+
+    ctx.beginPath();
+
+    ctx.arc(
+        cx,
+        cy,
+        fineRadius,
+        0,
+        Math.PI*2
+    );
+
+    ctx.stroke();
+
+
+    ctx.setLineDash([]);
+
+
+    /*
+       Crosshair.
+    */
+
+    ctx.strokeStyle=
+        "rgba(220,240,255,.8)";
+
+    ctx.lineWidth=1;
+
+    ctx.beginPath();
+
+    ctx.moveTo(cx-13,cy);
+
+    ctx.lineTo(cx+13,cy);
+
+    ctx.moveTo(cx,cy-13);
+
+    ctx.lineTo(cx,cy+13);
+
+    ctx.stroke();
+
+
+    ctx.restore();
+
+}
+
+
+/* ============================================================
+   DRAW AI DETECTION
+   ============================================================ */
+
+function drawDetection(){
+
+    if(!detection.found){
+        return;
+    }
+
+
+    const x=detection.x;
+
+    const y=detection.y;
+
+    const cx=W/2;
+
+    const cy=H/2;
+
+    const phase=getPhase();
+
+    const locked=
+        phase==="FINE LOCK";
+
+
+    const color=
+        locked
+            ? "#57ed9a"
+            : phase==="FINE ALIGNMENT"
+                ? "#7be9b0"
+                : phase==="COARSE ALIGNMENT"
+                    ? "#62bfff"
+                    : "#ffbd55";
+
+
+    /*
+       Target-to-boresight error vector.
+    */
+
+    ctx.save();
+
+    ctx.strokeStyle=
+        locked
+            ? "rgba(87,237,154,.75)"
+            : "rgba(120,190,235,.55)";
+
+    ctx.lineWidth=
+        locked ? 2 : 1.2;
+
+    ctx.setLineDash([5,4]);
+
+    ctx.beginPath();
+
+    ctx.moveTo(x,y);
+
+    ctx.lineTo(cx,cy);
+
+    ctx.stroke();
+
+    ctx.restore();
+
+
+    /*
+       Bounding box.
+    */
+
+    const boxSize=
+        selectedScenario==="Fast Target Motion"
+            ? 36
+            : 30;
+
+
+    ctx.save();
+
+    ctx.strokeStyle=color;
+
+    ctx.lineWidth=
+        locked ? 2.5 : 2;
+
+    ctx.shadowColor=color;
+
+    ctx.shadowBlur=
+        locked ? 14 : 7;
+
+    ctx.strokeRect(
+        x-boxSize,
+        y-boxSize,
+        boxSize*2,
+        boxSize*2
+    );
+
+    ctx.restore();
+
+
+    /*
+       Corner brackets.
+    */
+
+    const s=9;
+
+    ctx.save();
+
+    ctx.strokeStyle=color;
+
+    ctx.lineWidth=2;
+
+    ctx.beginPath();
+
+    ctx.moveTo(x-boxSize,y-boxSize+s);
+
+    ctx.lineTo(x-boxSize,y-boxSize);
+
+    ctx.lineTo(x-boxSize+s,y-boxSize);
+
+
+    ctx.moveTo(x+boxSize-s,y-boxSize);
+
+    ctx.lineTo(x+boxSize,y-boxSize);
+
+    ctx.lineTo(x+boxSize,y-boxSize+s);
+
+
+    ctx.moveTo(x-boxSize,y+boxSize-s);
+
+    ctx.lineTo(x-boxSize,y+boxSize);
+
+    ctx.lineTo(x-boxSize+s,y+boxSize);
+
+
+    ctx.moveTo(x+boxSize-s,y+boxSize);
+
+    ctx.lineTo(x+boxSize,y+boxSize);
+
+    ctx.lineTo(x+boxSize,y+boxSize-s);
+
+    ctx.stroke();
+
+    ctx.restore();
+
+
+    /*
+       Centroid.
+    */
+
+    ctx.save();
+
+    ctx.fillStyle="#ffffff";
+
+    ctx.shadowColor=color;
+
+    ctx.shadowBlur=12;
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y,
+        4,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+    ctx.restore();
+
+
+    /*
+       Lock ring.
+    */
+
+    if(locked){
+
+        ctx.save();
+
+        ctx.strokeStyle=
+            "rgba(87,237,154,.9)";
+
+        ctx.lineWidth=1;
+
+        ctx.setLineDash([3,3]);
+
+        ctx.beginPath();
+
+        ctx.arc(
+            cx,
+            cy,
+            34,
+            0,
+            Math.PI*2
+        );
+
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+
+    /*
+       Detection label.
+    */
+
+    ctx.save();
+
+    ctx.font=
+        "700 10px monospace";
+
+    const label=
+        locked
+            ? "✓ FINE LOCK"
+            : "AI TRACK";
+
+
+    const labelX=
+        x+boxSize+8;
+
+    const labelY=
+        y-boxSize;
+
+
+    ctx.fillStyle=
+        "rgba(3,12,20,.9)";
+
+    ctx.fillRect(
+        labelX,
+        labelY-12,
+        76,
+        18
+    );
+
+
+    ctx.fillStyle=color;
+
+    ctx.fillText(
+        label,
+        labelX+5,
+        labelY
+    );
+
+
+    ctx.restore();
+
+}
+
+
+/* ============================================================
+   TRAIL
+   ============================================================ */
+
+function updateTrail(){
+
+    if(!detection.found){
+        return;
+    }
+
+    trail.push({
+
+        x:detection.x/W*100,
+        y:detection.y/H*100
+
+    });
+
+
+    if(trail.length>60){
+
+        trail.shift();
+
+    }
+
+
+    const box=
+        $("trailBox");
+
+    box
+        .querySelectorAll(".trail-dot")
+        .forEach(x=>x.remove());
+
+
+    trail.forEach((p,i)=>{
+
+        const dot=
+            document.createElement("span");
+
+        dot.className=
+            "trail-dot";
+
+        dot.style.left=
+            p.x+"%";
+
+        dot.style.top=
+            p.y+"%";
+
+        dot.style.opacity=
+            .12+
+            .75*(i/trail.length);
+
+        box.appendChild(dot);
+
+    });
+
+}
+
+
+/* ============================================================
+   FULL CAMERA FRAME
+   ============================================================ */
+
+function drawCamera(t){
+
+    ctx.clearRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+
+    drawBackground(t);
+
+    drawAtmosphericEffect(t);
+
+    drawBoresight();
+
+    drawBeacon(t);
+
+    drawDetection();
+
+
+    /*
+       Target information on camera.
+    */
+
+    ctx.save();
+
+    ctx.font=
+        "8px monospace";
+
+    ctx.fillStyle=
+        "rgba(170,205,225,.65)";
+
+    ctx.fillText(
+        "VIRTUAL OPTICAL SENSOR",
+        16,
+        72
+    );
+
+    ctx.fillText(
+        "FOV 42° × 24°",
+        16,
+        85
+    );
+
+
+    /*
+       Current gimbal position.
+    */
+
+    ctx.fillText(
+        "BORESIGHT: "+
+        (gimbal.x-W/2).toFixed(1)+
+        " px / "+
+        (gimbal.y-H/2).toFixed(1)+
+        " px",
+        16,
+        98
+    );
+
+
+    ctx.restore();
+
+
+    /*
+       Low-SNR camera noise overlay.
+    */
+
+    const p=
+        SCENARIOS[selectedScenario];
+
+    if(p.noiseAmount>.3){
+
+        for(let i=0;i<100;i++){
+
+            const nx=Math.random()*W;
+            const ny=Math.random()*H;
+
+            const alpha=
+                p.noiseAmount*.16;
+
+            ctx.fillStyle=
+                "rgba(150,190,210,"+
+                alpha+")";
+
+            ctx.fillRect(
+                nx,
+                ny,
+                1,
+                1
+            );
+
+        }
+
+    }
+
+}
+
+
+/* ============================================================
+   MAIN LOOP
+   ============================================================ */
+
+function loop(now){
+
+    const dt=
+        Math.min(
+            (now-lastFrame)/1000,
+            .05
+        );
+
+    lastFrame=now;
+
+
+    /*
+       FPS.
+    */
+
+    frameCounter++;
+
+    if(
+        now-
+        (window._fpsTimer||now)
+        >=1000
+    ){
+
+        fps=frameCounter;
+
+        frameCounter=0;
+
+        window._fpsTimer=now;
+
+        $("fpsPill").textContent=
+            fps+" FPS";
+
+    }
+
+
+    /*
+       Only move target when simulation is running.
+    */
+
+    if(running){
+
+        const t=
+            now/1000;
+
+
+        updateTarget(t);
+
+        updateGimbal();
+
+        runDetector();
+
+        updateTrackingUI();
+
+        publishGraphTelemetry(now);
+
+        updateTrail();
+
+    }
+
+
+    /*
+       drawBeacon() uses previousTargetX/Y for the optical streak.
+       Update these ONLY after the frame has been rendered.
+    */
+    drawCamera(now);
+
+    if(running){
+        previousTargetX=target.x;
+        previousTargetY=target.y;
+    }
+
+    requestAnimationFrame(loop);
+
+}
+
+
+/* ============================================================
+   INITIALIZE
+   ============================================================ */
+
+document.addEventListener("click",function(event){
+    const modal=document.getElementById("targetLostReportModal");
+    if(modal && event.target===modal){
+        closeTargetLostReport();
+    }
+});
+
+function init(){
+
+    canvas=
+        $("scenarioCanvas");
+
+    ctx=
+        canvas.getContext("2d");
+
+
+    resizeCanvas();
+
+    updateProfile();
+
+    resetScenario();
+
+
+    window.addEventListener(
+        "resize",
+        resizeCanvas
+    );
+
+
+    /*
+       Initialize the first scenario immediately.
+    */
+
+    addEvent(
+        "Nominal Orbital profile loaded"
+    );
+
+    addEvent(
+        "Virtual camera ready"
+    );
+
+
+    /*
+       Start rendering even before START is clicked.
+    */
+
+    requestAnimationFrame(loop);
+
+}
+
+
+if(
+    document.readyState==="loading"
+){
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        init
+    );
+
+}else{
+
+    init();
+
+}
+
+})();
+</script>
+
+
+<!-- Chart.js powers the live Scenario Graphs panel. -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function(){
+    'use strict';
+
+    const graphDefinitions = {
+        relativeVelocity:{
+            title:'Relative Velocity', type:'line', unit:'km/s',
+            axis:'Relative velocity (km/s)',
+            description:'Live value from target motion measured by the active scenario camera simulation.',
+            format:v=>Number(v).toFixed(2)+' km/s',
+            analysis:'Shows how quickly the target geometry is changing in the live scenario camera.'
+        },
+        missDistance:{
+            title:'Miss Distance', type:'line', unit:'km',
+            axis:'Closest separation (km)',
+            description:'Live separation estimate from the current target-to-gimbal geometry and detector state.',
+            format:v=>Number(v).toFixed(2)+' km',
+            analysis:'A decreasing value means the simulated encounter margin is becoming tighter.'
+        },
+        collisionProbability:{
+            title:'Collision Probability', type:'line', unit:'%',
+            axis:'Collision probability (%)',
+            description:'Live risk indicator calculated from the current target motion, separation and tracking confidence.',
+            format:v=>Number(v).toFixed(1)+'%',
+            analysis:'Higher values indicate a more urgent safety condition in the selected scenario.'
+        },
+        debrisDensity:{
+            title:'Debris Density', type:'bar', unit:'objects',
+            axis:'Relevant objects',
+            description:'Scenario-dependent object-load estimate updated from the active camera environment.',
+            format:v=>Math.round(v)+' objects',
+            analysis:'Higher density represents greater target-association and tracking workload.'
+        },
+        trackingConfidence:{
+            title:'Tracking Confidence', type:'line', unit:'%',
+            axis:'Tracking confidence (%)',
+            description:'Directly follows the live detector confidence from the Scenario View.',
+            format:v=>Number(v).toFixed(1)+'%',
+            analysis:'This is one of the most direct live-camera indicators. Falling confidence means the optical solution is becoming less reliable.'
+        },
+        positionError:{
+            title:'Position Error', type:'line', unit:'m',
+            axis:'Position uncertainty (m)',
+            description:'Live camera pointing error converted into a position-uncertainty indicator.',
+            format:v=>Number(v).toFixed(1)+' m',
+            analysis:'Larger error means the predicted target location is less certain and alignment becomes harder.'
+        },
+        timeToCA:{
+            title:'Time to Closest Approach', type:'line', unit:'min',
+            axis:'Time remaining (min)',
+            description:'Live countdown derived from the current scenario run.',
+            format:v=>Number(v).toFixed(1)+' min',
+            analysis:'The lower this value becomes, the less time remains for detection, decision and maneuver execution.'
+        },
+        deltaV:{
+            title:'ΔV Required', type:'bar', unit:'m/s',
+            axis:'Avoidance ΔV (m/s)',
+            description:'Live maneuver-demand estimate derived from current tracking error and encounter severity.',
+            format:v=>Number(v).toFixed(3)+' m/s',
+            analysis:'Higher ΔV means a more demanding avoidance maneuver.'
+        },
+        fuelConsumption:{
+            title:'Fuel Consumption', type:'bar', unit:'kg',
+            axis:'Fuel used (kg)',
+            description:'Live propellant estimate derived from the current ΔV requirement.',
+            format:v=>Number(v).toFixed(3)+' kg',
+            analysis:'Tracks the resource cost associated with the currently estimated maneuver.'
+        },
+        maneuverDuration:{
+            title:'Maneuver Duration', type:'bar', unit:'s',
+            axis:'Duration (s)',
+            description:'Live execution-time estimate derived from maneuver demand and tracking error.',
+            format:v=>Number(v).toFixed(1)+' s',
+            analysis:'Longer execution time reduces the available operational margin.'
+        },
+        detectionRange:{
+            title:'Detection Range', type:'bar', unit:'km',
+            axis:'Effective detection range (km)',
+            description:'Live effective acquisition range derived from the active scenario signal and tracking quality.',
+            format:v=>Number(v).toFixed(0)+' km',
+            analysis:'A larger effective range gives the system more time to acquire and track the target.'
+        },
+        responseTime:{
+            title:'Response Time', type:'bar', unit:'s',
+            axis:'Response time (s)',
+            description:'Live estimate from optical detection through decision and command readiness.',
+            format:v=>Number(v).toFixed(1)+' s',
+            analysis:'Lower response time preserves more of the warning window for controlled action.'
+        }
+    };
+
+    let chart=null;
+    let lastScenario='';
+
+    function getFeed(){
+        return window.scenarioGraphLive || {
+            history:{},
+            last:{},
+            scenario:'Nominal Orbital'
+        };
+    }
+
+    function labelsFor(count){
+        const labels=[];
+        for(let i=0;i<count;i++){
+            const seconds=Math.max(0,(count-1-i)*0.25);
+            labels.push(seconds===0 ? 'NOW' : '-'+seconds.toFixed(1)+'s');
+        }
+        return labels;
+    }
+
+    function valuesFor(key, type){
+        const feed = getFeed();
+        const raw = (feed.history && feed.history[key]) || [];
+        const values = raw
+            .map(Number)
+            .filter(Number.isFinite)
+            .slice(-30);
+
+        /*
+           ALL graph types now consume the same live history.
+           Bar parameters show the most recent live samples as bars,
+           instead of creating artificial multiplier values.
+        */
+        if(values.length) return type==='bar' ? values.slice(-12) : values;
+
+        const current = Number(feed.last?.[key]);
+        return Number.isFinite(current) ? [current] : [0];
+    }
+
+    function currentValue(values,type,key){
+        const feed=getFeed();
+        if(type==='line'){
+            return Number(feed.last?.[key] ?? values[values.length-1] ?? 0);
+        }
+        return Number(feed.last?.[key] ?? values[values.length-1] ?? 0);
+    }
+
+    function trend(values){
+        if(values.length<2) return 'WAITING FOR LIVE DATA';
+
+        const first=values[0];
+        const last=values[values.length-1];
+        const delta=last-first;
+        const threshold=Math.max(Math.abs(first)*.015,.001);
+
+        if(Math.abs(delta)<=threshold) return 'STABLE';
+        return delta>0?'RISING':'FALLING';
+    }
+
+    function levelFor(key,values){
+        const feed=getFeed();
+        const current=Number(feed.last?.[key] ?? values[values.length-1] ?? 0);
+
+        if(key==='collisionProbability'){
+            if(current>=35)return ['HIGH RISK','danger'];
+            if(current>=15)return ['ELEVATED','warn'];
+            return ['LOW RISK','good'];
+        }
+
+        if(key==='trackingConfidence'){
+            if(current<70)return ['LOW CONFIDENCE','danger'];
+            if(current<90)return ['DEGRADED','warn'];
+            return ['STABLE','good'];
+        }
+
+        if(key==='missDistance'){
+            if(current<.75)return ['CRITICAL PROXIMITY','danger'];
+            if(current<1.5)return ['TIGHT APPROACH','warn'];
+            return ['SAFE MARGIN','good'];
+        }
+
+        if(key==='positionError'){
+            if(current>120)return ['HIGH UNCERTAINTY','danger'];
+            if(current>60)return ['ELEVATED ERROR','warn'];
+            return ['CONTROLLED','good'];
+        }
+
+        if(key==='timeToCA'){
+            if(current<5)return ['URGENT WINDOW','danger'];
+            if(current<10)return ['SHORT WINDOW','warn'];
+            return ['OPERATIONAL WINDOW','good'];
+        }
+
+        if(key==='deltaV'){
+            if(current>.9)return ['HIGH DEMAND','danger'];
+            if(current>.45)return ['MODERATE DEMAND','warn'];
+            return ['LOW DEMAND','good'];
+        }
+
+        if(key==='fuelConsumption'){
+            if(current>.3)return ['HIGH RESOURCE USE','danger'];
+            if(current>.15)return ['MODERATE USE','warn'];
+            return ['LOW RESOURCE USE','good'];
+        }
+
+        return ['MONITOR','blue'];
+    }
+
+    function updateAnalysis(def,key,values){
+        const feed=getFeed();
+        const liveValues=(feed.history?.[key] || []).slice(-30);
+        const valuesForStats=liveValues.length ? liveValues : values;
+
+        const peak=Math.max(...valuesForStats);
+        const min=Math.min(...valuesForStats);
+        const tr=trend(valuesForStats);
+        const [level,cls]=levelFor(key,valuesForStats);
+
+        const levelEl=document.getElementById('analysisLevel');
+        levelEl.textContent=level;
+        levelEl.className='sc-analysis-score '+cls;
+
+        document.getElementById('analysisHeadline').textContent=
+            level==='HIGH RISK'?'Immediate attention required':
+            level==='CRITICAL PROXIMITY'?'Very close encounter geometry':
+            level==='LOW CONFIDENCE'?'Tracking quality is degraded':
+            level==='HIGH UNCERTAINTY'?'Prediction uncertainty is high':
+            level==='HIGH DEMAND'?'Maneuver resource demand is high':
+            level==='URGENT WINDOW'?'Decision window is becoming critical':
+            'Live scenario condition';
+
+        document.getElementById('analysisText').textContent=
+            def.analysis+' Current scenario: '+feed.scenario+'.';
+
+        document.getElementById('analysisTrend').textContent=tr;
+        document.getElementById('analysisPeak').textContent=def.format(peak);
+        document.getElementById('analysisMin').textContent=def.format(min);
+
+        const effects={
+            relativeVelocity:'Geometry changes faster',
+            missDistance:'Encounter margin changes',
+            collisionProbability:'Safety priority changes',
+            debrisDensity:'Detection workload changes',
+            trackingConfidence:'Optical lock reliability changes',
+            positionError:'Prediction uncertainty changes',
+            timeToCA:'Decision window decreases',
+            deltaV:'Propulsion demand changes',
+            fuelConsumption:'Fuel budget impact changes',
+            maneuverDuration:'Execution margin changes',
+            detectionRange:'Acquisition opportunity changes',
+            responseTime:'Reaction margin changes'
+        };
+
+        document.getElementById('analysisEffect').textContent=
+            effects[key] || 'Operational impact';
+    }
+
+    function renderGraph(){
+
+        if(typeof Chart==='undefined') return;
+
+        const select=document.getElementById('graphParameter');
+        if(!select) return;
+
+        const key=select.value;
+        const def=graphDefinitions[key];
+        const feed=getFeed();
+        const scenario=feed.scenario || 'Nominal Orbital';
+
+        const values=valuesFor(key,def.type);
+
+        document.getElementById('graphTitle').textContent=def.title;
+        document.getElementById('graphDescription').textContent=def.description;
+        document.getElementById('graphType').textContent=def.type.toUpperCase();
+        document.getElementById('graphScenarioPill').textContent=scenario.toUpperCase();
+        document.getElementById('graphMetricName').textContent=def.title;
+        document.getElementById('graphMetricValue').textContent=
+            def.format(currentValue(values,def.type,key));
+        document.getElementById('graphScenarioName').textContent=scenario;
+
+        const canvas=document.getElementById('scenarioMetricChart');
+        if(!canvas) return;
+
+        const chartCtx=canvas.getContext('2d');
+
+        if(chart){
+            chart.destroy();
+            chart=null;
+        }
+
+        const isLine=def.type==='line';
+
+        chart=new Chart(chartCtx,{
+            type:def.type,
+
+            data:{
+                labels:labelsFor(values.length),
+
+                datasets:[{
+                    label:def.title,
+                    data:values,
+                    borderWidth:2,
+                    pointRadius:isLine?2.5:0,
+                    barPercentage:.72,
+                    categoryPercentage:.72,
+                    pointHoverRadius:5,
+                    tension:.3,
+                    fill:isLine,
+                    backgroundColor:
+                        isLine
+                            ? 'rgba(87,237,154,.10)'
+                            : 'rgba(98,191,255,.45)',
+                    borderColor:
+                        isLine
+                            ? 'rgba(87,237,154,.95)'
+                            : 'rgba(98,191,255,.95)',
+                    pointBackgroundColor:'rgba(87,237,154,1)',
+                    pointBorderColor:'rgba(8,19,31,1)'
+                }]
+            },
+
+            options:{
+                responsive:true,
+                maintainAspectRatio:false,
+                animation:false,
+
+                interaction:{
+                    mode:'index',
+                    intersect:false
+                },
+
+                plugins:{
+                    legend:{display:false},
+
+                    tooltip:{
+                        displayColors:false,
+
+                        callbacks:{
+                            label:c=>def.format(c.parsed.y)
+                        }
+                    }
+                },
+
+                scales:{
+                    x:{
+                        grid:{
+                            color:'rgba(96,136,166,.10)'
+                        },
+                        ticks:{
+                            color:'#70899e',
+                            font:{size:8}
+                        }
+                    },
+
+                    y:{
+                        beginAtZero:
+                            key==='collisionProbability' ||
+                            key==='trackingConfidence' ||
+                            key==='debrisDensity' ||
+                            key==='deltaV' ||
+                            key==='fuelConsumption' ||
+                            key==='maneuverDuration' ||
+                            key==='responseTime',
+
+                        grid:{
+                            color:'rgba(96,136,166,.10)'
+                        },
+
+                        ticks:{
+                            color:'#70899e',
+                            font:{size:8},
+                            callback:v=>def.format(v)
+                        },
+
+                        title:{
+                            display:true,
+                            text:def.axis,
+                            color:'#8299ab',
+                            font:{size:8}
+                        }
+                    }
+                }
+            }
+        });
+
+        updateAnalysis(def,key,values);
+    }
+
+    function refreshLiveGraph(){
+
+        const feed=getFeed();
+        const scenario=feed.scenario || 'Nominal Orbital';
+
+        /*
+           Rebuild only when the selected scenario changes.
+           Otherwise update the existing chart data without replacing
+           the chart, keeping the graph visually stable.
+        */
+
+        const key=document.getElementById('graphParameter')?.value;
+        if(!key) return;
+
+        const def=graphDefinitions[key];
+        const values=valuesFor(key,def.type);
+
+        document.getElementById('graphScenarioPill').textContent=
+            scenario.toUpperCase();
+
+        document.getElementById('graphScenarioName').textContent=
+            scenario;
+
+        document.getElementById('graphMetricValue').textContent=
+            def.format(currentValue(values,def.type,key));
+
+        if(!chart || lastScenario!==scenario){
+            lastScenario=scenario;
+            renderGraph();
+            return;
+        }
+
+        if(def.type==='line'){
+
+            chart.data.labels=labelsFor(values.length);
+            chart.data.datasets[0].data=values;
+
+        }else{
+
+            chart.data.datasets[0].data=values;
+
+        }
+
+        chart.update('none');
+
+        updateAnalysis(def,key,values);
+    }
+
+    function initGraphs(){
+
+        document.getElementById('graphParameter')
+            ?.addEventListener('change',()=>{
+                renderGraph();
+            });
+
+        /*
+           Wait for the live camera bridge to initialize.
+        */
+        setTimeout(renderGraph,250);
+
+        /*
+           Refresh from live camera telemetry four times per second.
+        */
+        setInterval(refreshLiveGraph,250);
+    }
+
+    if(document.readyState==='loading'){
+        document.addEventListener('DOMContentLoaded',initGraphs);
+    }else{
+        initGraphs();
+    }
+
+})();
+</script>
+
+{% endblock %}

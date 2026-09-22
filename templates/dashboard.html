@@ -1,0 +1,611 @@
+{% extends 'base.html' %}
+{% block title %}<b>Control Center</b>{% endblock %}
+
+{% block content %}
+<style>
+/* =========================================================
+   FSOC MISSION CONTROL — dashboard
+   All dashboard controls are wired to the existing Flask APIs.
+   ========================================================= */
+.fsoc{--bg:#f4f7fb;--card:#fff;--line:#d9e2ec;--ink:#122033;--muted:#6d7d91;--blue:#1769e0;--cyan:#0796c7;--green:#1b9c55;--amber:#d99100;--red:#d9363e;--navy:#081522;display:grid;gap:14px}
+.fsoc *{box-sizing:border-box}
+.mc-hero{color:#fff;border-radius:16px;padding:20px;background:linear-gradient(135deg,#081522,#102b47 62%,#0d5678);box-shadow:0 16px 36px rgba(8,21,34,.18);position:relative;overflow:hidden}
+.mc-hero:after{content:"";position:absolute;right:-110px;top:-180px;width:420px;height:420px;border:1px solid rgba(255,255,255,.08);border-radius:50%;box-shadow:0 0 0 40px rgba(255,255,255,.025),0 0 0 85px rgba(255,255,255,.018)}
+.mc-top{position:relative;z-index:2;display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.mc-kicker{font-size:9px;letter-spacing:1.8px;color:#a8c8dc;font-weight:800;text-transform:uppercase}.mc-title{font-size:29px;font-weight:900;margin:3px 0}.mc-sub{font-size:11px;color:#c5d7e6}
+.mc-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.mc-actions button{border-radius:8px;font-weight:800;font-size:10px}
+.mc-controls{position:relative;z-index:2;display:flex;align-items:center;gap:8px;margin-top:15px;flex-wrap:wrap}
+.mc-select{height:32px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;border-radius:8px;padding:0 10px;font-size:10px;outline:none}.mc-select option{color:#122033;background:#fff}
+.mc-status{font-size:9px;color:#b9d0df;border:1px solid rgba(255,255,255,.13);padding:7px 9px;border-radius:8px;background:rgba(0,0,0,.12)}
+.mc-status i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#44d47d;margin-right:6px;box-shadow:0 0 0 4px rgba(68,212,125,.12)}
+.phase-flow{position:relative;z-index:2;display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:18px}.phase-node{position:relative;text-align:center;min-width:0}.phase-node:after{content:"";position:absolute;top:16px;left:calc(50% + 17px);right:calc(-50% + 17px);height:1px;background:rgba(255,255,255,.17)}.phase-node:last-child:after{display:none}.phase-circle{width:34px;height:34px;border-radius:50%;margin:auto;display:grid;place-items:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);font-size:10px;font-weight:900;position:relative;z-index:1}.phase-node.done .phase-circle{background:rgba(68,212,125,.15);border-color:#44d47d;color:#91efb5}.phase-node.active .phase-circle{background:rgba(78,196,255,.17);border-color:#58ccff;color:#b7ecff;box-shadow:0 0 18px rgba(78,196,255,.2)}.phase-node.failed .phase-circle{background:rgba(217,54,62,.16);border-color:#ff6f77;color:#ffb3b7}.phase-label{font-size:7px;line-height:1.25;margin-top:7px;color:#a9bdce;text-transform:uppercase;letter-spacing:.35px}.phase-check{display:block;font-size:7px;margin-top:3px;color:#44d47d;font-weight:900;min-height:9px}
+.grid-readiness{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:13px;box-shadow:0 8px 24px rgba(18,32,51,.055);overflow:hidden}.card-head{padding:12px 14px 9px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}.card-head h2{font-size:12px;margin:0;font-weight:900;color:var(--ink)}.card-head small{display:block;color:var(--muted);font-size:8px;margin-top:2px}.card-body{padding:13px}.pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:8px;font-weight:900}.pill.green{background:#eaf8ef;color:#178249}.pill.blue{background:#eaf3ff;color:#1769e0}.pill.amber{background:#fff6df;color:#a66d00}.pill.red{background:#fff0f0;color:#c12f36}
+.ready-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.ready-item{border:1px solid var(--line);background:#fbfcfe;border-radius:9px;padding:8px}.ready-item small{display:block;color:var(--muted);font-size:7px;text-transform:uppercase}.ready-item b{display:block;margin-top:4px;font-size:9px;color:var(--green)}.ready-item b:before{content:"✓ ";font-weight:900}.ready-footer{border-top:1px solid var(--line);margin-top:9px;padding-top:9px;display:flex;justify-content:space-between;font-size:9px}.ready-footer b{color:var(--blue)}
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}.kpi{background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px;box-shadow:0 8px 22px rgba(18,32,51,.045)}.kpi small{font-size:7px;color:var(--muted);font-weight:900;letter-spacing:.7px}.kpi strong{display:block;font-size:19px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kpi span{font-size:8px;color:var(--muted)}
+.main-two{display:grid;grid-template-columns:1.45fr .75fr;gap:14px}
+.target-card{min-width:0}.target-view{height:390px;position:relative;overflow:hidden;border-radius:11px;background:radial-gradient(circle at 50% 50%,#18334c 0,#0d1f31 52%,#07121d 100%);border:1px solid #203b53}
+.target-view .grid{position:absolute;inset:0;background:linear-gradient(rgba(90,190,235,.065) 1px,transparent 1px),linear-gradient(90deg,rgba(90,190,235,.065) 1px,transparent 1px);background-size:32px 32px}
+.target-view .scan{position:absolute;left:0;right:0;height:1px;top:20%;background:rgba(79,207,255,.25);box-shadow:0 0 12px rgba(79,207,255,.35);animation:scan 4s linear infinite}@keyframes scan{0%{top:5%}50%{top:95%}100%{top:5%}}
+.fov{position:absolute;inset:24px;border:1px solid rgba(127,229,255,.16);border-radius:8px}.fov:before,.fov:after{content:"";position:absolute;width:35px;height:35px;border-color:#6fdfff;border-style:solid;opacity:.5}.fov:before{left:-1px;top:-1px;border-width:2px 0 0 2px}.fov:after{right:-1px;bottom:-1px;border-width:0 2px 2px 0}
+.axis{position:absolute;left:50%;top:50%;width:18px;height:18px;border:2px solid #83e8ff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 20px rgba(131,232,255,.8)}.axis:before,.axis:after{content:"";position:absolute;background:rgba(131,232,255,.55)}.axis:before{width:170px;height:1px;left:-78px;top:7px}.axis:after{height:170px;width:1px;left:7px;top:-78px}
+.lock-zone{position:absolute;left:50%;top:50%;width:100px;height:100px;border:1px dashed rgba(68,212,125,.55);transform:translate(-50%,-50%);border-radius:50%}.lock-zone span{position:absolute;top:-15px;left:3px;color:#71dc9a;font-size:7px;font-weight:900;letter-spacing:.5px}
+#trailSvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.target{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #44d47d;transform:translate(-50%,-50%);box-shadow:0 0 18px rgba(68,212,125,.9);transition:left .18s linear,top .18s linear}.target:after{content:"";position:absolute;inset:-7px;border:1px solid rgba(68,212,125,.45);border-radius:50%;animation:pulse 1.3s infinite}@keyframes pulse{50%{transform:scale(1.25);opacity:.2}100%{transform:scale(1);opacity:1}}
+.pred{position:absolute;width:12px;height:12px;border:2px dashed #ffc85a;border-radius:50%;transform:translate(-50%,-50%);transition:left .2s,top .2s}.bbox{position:absolute;width:108px;height:78px;border:2px solid #44d47d;border-radius:6px;transform:translate(-50%,-50%);transition:left .18s linear,top .18s linear}.bbox:before{content:"FSOC-TGT-001";position:absolute;left:-2px;top:-18px;background:#44d47d;color:#062012;padding:2px 5px;border-radius:3px 3px 0 0;font-size:7px;font-weight:900}.target-lost .target,.target-lost .bbox{border-color:#ff6d75}.target-lost .target{background:#ff6d75;box-shadow:0 0 18px rgba(255,109,117,.65)}
+.hud{position:absolute;z-index:4;display:flex;gap:6px;flex-wrap:wrap}.hud.top{left:11px;top:10px}.hud.bottom{left:11px;right:11px;bottom:10px;justify-content:space-between}.hud-tag{background:rgba(2,12,21,.78);border:1px solid rgba(155,213,238,.2);color:#c9deeb;border-radius:5px;padding:5px 7px;font-size:8px}.hud-tag b{color:#83e8ff}.view-tools{display:flex;gap:6px;align-items:center}.view-tools button{border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 8px;font-size:8px;font-weight:800}.view-tools button.active{background:#eaf3ff;color:var(--blue);border-color:#b9d5f5}
+.target-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}.tm{border:1px solid var(--line);border-radius:8px;padding:8px}.tm small{font-size:7px;color:var(--muted);display:block}.tm b{font-size:11px;display:block;margin-top:3px}
+.intel-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.intel{border:1px solid var(--line);border-radius:8px;padding:9px}.intel small{display:block;font-size:7px;color:var(--muted);text-transform:uppercase}.intel b{font-size:11px;display:block;margin-top:4px}.decision{margin-top:8px;padding:10px;border-radius:9px;background:#f2f7fd;border:1px solid #d1e3f6}.decision b{font-size:9px;color:var(--blue)}.decision p{font-size:9px;color:#53657a;line-height:1.45;margin:7px 0}.decision strong{font-size:11px}
+.align-gauge{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}.gauge{position:relative;height:150px}.gauge svg{width:100%;height:100%}.gauge-value{position:absolute;left:0;right:0;top:58px;text-align:center}.gauge-value b{display:block;font-size:23px}.gauge-value small{font-size:7px;color:var(--muted);text-transform:uppercase}.meta{display:grid;gap:7px}.meta-row{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding-bottom:6px}.meta-row span{font-size:8px;color:var(--muted)}.meta-row b{font-size:9px}
+.improve{display:grid;grid-template-columns:1fr auto 1fr;gap:7px;align-items:center;margin-top:8px}.im-card{border:1px solid var(--line);border-radius:8px;padding:9px}.im-card small{font-size:7px;color:var(--muted);text-transform:uppercase}.im-card b{font-size:17px;display:block;margin:3px 0}.im-card span{font-size:8px;color:var(--muted)}.im-arrow{color:var(--blue);font-size:18px}.reduction{text-align:center;font-size:8px;font-weight:900;margin-top:8px;color:var(--muted)}.reduction b{color:var(--green)}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.chart-card{background:#fff;border:1px solid var(--line);border-radius:13px;box-shadow:0 8px 24px rgba(18,32,51,.05);overflow:hidden}.chart-wrap{height:285px;padding:8px 12px 10px}.chart-wrap canvas{width:100%!important;height:100%!important}.chart-toolbar{display:flex;gap:4px}.chart-toolbar button{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:6px;padding:4px 7px;font-size:7px;font-weight:900}.chart-toolbar button.active{background:#eaf3ff;color:var(--blue);border-color:#bdd7f6}.chart-foot{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line)}.chart-stat{padding:8px 11px}.chart-stat:not(:last-child){border-right:1px solid var(--line)}.chart-stat small{display:block;font-size:7px;color:var(--muted);text-transform:uppercase}.chart-stat b{font-size:11px;display:block;margin-top:3px}
+.bottom-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}.timeline{display:grid;gap:7px}.event{display:grid;grid-template-columns:58px 9px 1fr auto;gap:8px;align-items:center;border-bottom:1px solid #eef2f6;padding-bottom:7px}.event:last-child{border-bottom:0}.event time{font-size:7px;color:var(--muted)}.event-dot{width:7px;height:7px;border-radius:50%;background:var(--blue)}.event b{display:block;font-size:8px}.event span{font-size:8px;color:var(--muted)}.sev{font-size:7px;font-weight:900;color:var(--muted)}.env-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.env{border:1px solid var(--line);border-radius:8px;padding:9px}.env small{display:block;font-size:7px;color:var(--muted);text-transform:uppercase}.env b{font-size:10px;display:block;margin-top:4px}.env-track{height:4px;background:#edf2f7;border-radius:9px;margin-top:6px;overflow:hidden}.env-track i{display:block;height:100%;background:var(--cyan);border-radius:9px}.anomaly{margin-top:9px;border:1px solid var(--line);border-radius:9px;padding:9px}.anomaly-head{display:flex;justify-content:space-between;font-size:8px}.anomaly-list{display:grid;gap:5px;margin-top:8px}.anomaly-list div{display:flex;justify-content:space-between;font-size:8px;color:var(--muted)}.anomaly-list b{font-size:7px;color:var(--ink)}
+.session-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr .8fr;gap:8px}.session-item{border:1px solid var(--line);border-radius:8px;padding:9px}.session-item small{font-size:7px;color:var(--muted);display:block}.session-item b{font-size:9px;display:block;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.perf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:8px}.perf{border:1px solid var(--line);border-radius:8px;padding:8px}.perf small{display:block;font-size:7px;color:var(--muted)}.perf b{font-size:12px;display:block;margin-top:3px}.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}.quick a,.quick button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 5px;text-decoration:none;text-align:center;color:var(--ink);font-size:8px;font-weight:900;cursor:pointer}.quick a:hover,.quick button:hover{border-color:#b7d0ec;background:#f3f8ff;color:var(--blue)}
+.offline{opacity:.72}.hidden{display:none!important}
+@media(max-width:1200px){.grid-readiness,.main-two,.bottom-grid{grid-template-columns:1fr}.ready-grid{grid-template-columns:repeat(4,1fr)}.kpi-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:800px){.mc-top{flex-direction:column}.mc-actions{justify-content:flex-start}.phase-flow{grid-template-columns:repeat(3,1fr)}.phase-node:after{display:none}.ready-grid{grid-template-columns:repeat(2,1fr)}.kpi-row,.chart-grid{grid-template-columns:1fr 1fr}.target-metrics,.session-grid,.perf-grid{grid-template-columns:1fr 1fr}.quick{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.kpi-row,.chart-grid{grid-template-columns:1fr}.align-gauge{grid-template-columns:1fr}.target-view{height:320px}}
+</style>
+
+<div class="fsoc" id="fsocDashboard">
+  <section class="mc-hero">
+    <div class="mc-top">
+      <div>
+        
+        <div class="mc-title">FSOC Mission Control</div>
+        <div class="mc-sub">Continuous acquisition, alignment, optical tracking, link monitoring and recovery.</div>
+      </div>
+      <div class="mc-actions">
+        <button class="btn btn-light btn-sm" onclick="FSOC.start('auto-align')">▶ Start Mission</button>
+        <button class="btn btn-outline-light btn-sm" onclick="FSOC.start('demo')">◉ Demo Mode</button>
+        <button class="btn btn-outline-light btn-sm" onclick="FSOC.stop()">■ Stop</button>
+      </div>
+    </div>
+
+    <div class="mc-controls">
+      <select id="scenarioSelect" class="mc-select" title="Mission scenario">
+        <option>Nominal Orbital</option><option>Atmospheric Turbulence</option><option>Platform Vibration</option>
+        <option>Low Beacon SNR</option><option>Fast Target Motion</option><option>Target Lost</option>
+      </select>
+      <button class="btn btn-sm btn-outline-light" onclick="FSOC.applyScenario()">Apply Scenario</button>
+      <span class="mc-status"><i></i><span id="mcConnection">TELEMETRY ONLINE</span></span>
+      <span class="mc-status">SESSION <b id="heroSession">—</b></span>
+    </div>
+
+    <div class="phase-flow" id="phaseFlow">
+      <div class="phase-node" data-phase="SEARCHING" id="phaseSearch"><div class="phase-circle">01</div><div class="phase-label">Target<br>Detected</div><span class="phase-check"></span></div>
+      <div class="phase-node" data-phase="ACQUISITION" id="phaseAcq"><div class="phase-circle">02</div><div class="phase-label">Acquisition</div><span class="phase-check"></span></div>
+      <div class="phase-node" data-phase="COARSE ALIGNMENT" id="phaseCoarse"><div class="phase-circle">03</div><div class="phase-label">Coarse<br>Alignment</div><span class="phase-check"></span></div>
+      <div class="phase-node" data-phase="FINE ALIGNMENT" id="phaseFine"><div class="phase-circle">04</div><div class="phase-label">Fine<br>Alignment</div><span class="phase-check"></span></div>
+      <div class="phase-node" data-phase="FINE LOCK" id="phaseLock"><div class="phase-circle">05</div><div class="phase-label">Fine<br>Lock</div><span class="phase-check"></span></div>
+      <div class="phase-node" data-phase="LINK ESTABLISHED" id="phaseLink"><div class="phase-circle">06</div><div class="phase-label">Link<br>Established</div><span class="phase-check"></span></div>
+    </div>
+  </section>
+
+  <section class="grid-readiness">
+    <div class="card">
+      <div class="card-head"><div><h2>System Readiness</h2><small>Pre-flight status of the complete control stack.</small></div><span class="pill green" id="readiness">7 / 7 READY</span></div>
+      <div class="card-body">
+        <div class="ready-grid">
+          <div class="ready-item"><small>Camera</small><b>READY</b></div>
+          <div class="ready-item"><small>AI Detector</small><b>READY</b></div>
+          <div class="ready-item"><small>Tracking</small><b id="readyTracking">STANDBY</b></div>
+          <div class="ready-item"><small>Acquisition</small><b>READY</b></div>
+          <div class="ready-item"><small>Alignment</small><b>READY</b></div>
+          <div class="ready-item"><small>Database</small><b>CONNECTED</b></div>
+          <div class="ready-item"><small>Safety</small><b>ARMED</b></div>
+        </div>
+        <div class="ready-footer"><span>Mission controller</span><b id="controllerStatus">STANDBY</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div><h2>Link Health</h2><small>Calculated from the same live mission telemetry used by the graphs.</small></div><span class="pill green" id="healthLabel">EXCELLENT</span></div>
+      <div class="card-body" style="display:grid;grid-template-columns:105px 1fr;gap:13px;align-items:center">
+        <div style="width:100px;height:100px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#44d47d 0 94%,#edf2f7 94% 100%);position:relative" id="healthRing"><div style="position:absolute;inset:8px;border-radius:50%;background:#fff;display:grid;place-items:center"><b id="healthScore" style="font-size:21px">94</b></div></div>
+        <div style="display:grid;gap:6px">
+          <div class="meta-row"><span>Detection</span><b id="healthDetection">0%</b></div>
+          <div class="meta-row"><span>Alignment</span><b id="healthAlignment">0%</b></div>
+          <div class="meta-row"><span>Signal</span><b id="healthSignal">0%</b></div>
+          <div class="meta-row"><span>Tracking stability</span><b id="healthTracking">0%</b></div>
+          <div style="font-size:8px;color:var(--muted)" id="healthState">Waiting for mission telemetry.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="kpi-row">
+    <div class="kpi"><small>TARGET</small><strong style="color:var(--green)" id="kTarget">STANDBY</strong><span>Optical terminal state</span></div>
+    <div class="kpi"><small>AI CONFIDENCE</small><strong style="color:var(--blue)" id="kConfidence">—</strong><span>Beacon detection</span></div>
+    <div class="kpi"><small>ANGULAR ERROR</small><strong id="kError">—</strong><span>Total pointing error</span></div>
+    <div class="kpi"><small>SIGNAL</small><strong style="color:var(--blue)" id="kSignal">—</strong><span>Signal strength</span></div>
+    <div class="kpi"><small>TRACKING</small><strong style="color:var(--green)" id="kTracking">STANDBY</strong><span>Controller state</span></div>
+    <div class="kpi"><small>MISSIONS</small><strong id="kSessions">0</strong><span>Stored SQLite sessions</span></div>
+  </section>
+
+  <section class="main-two">
+    <div class="card target-card">
+      <div class="card-head">
+        <div><h2>Live Target View</h2><small>Same target coordinates, errors and phase used by all three live telemetry graphs.</small></div>
+        <div class="view-tools"><button id="simViewBtn" class="active" onclick="FSOC.setView('sim')">SIM VIEW</button><button id="cameraViewBtn" onclick="FSOC.setView('camera')">LIVE CAMERA</button></div>
+      </div>
+      <div class="card-body">
+        <div class="target-view" id="targetView">
+          <img id="liveCamera" class="hidden" src="/video_feed" alt="Live optical camera feed" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+          <div id="simLayer">
+            <div class="grid"></div><div class="scan"></div><div class="fov"></div><div class="lock-zone"><span>FINE-LOCK ±0.5°</span></div>
+            <svg id="trailSvg" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline id="trailLine" points="" fill="none" stroke="#44d47d" stroke-width=".35" opacity=".65"></polyline></svg>
+            <div class="axis"></div><div class="bbox" id="targetBox" style="left:50%;top:50%"></div><div class="target" id="targetDot" style="left:50%;top:50%"></div><div class="pred" id="predDot" style="left:52%;top:48%"></div>
+          </div>
+          <div class="hud top"><div class="hud-tag">TARGET <b>FSOC-TGT-001</b></div><div class="hud-tag">CONF <b id="hudConf">—</b></div><div class="hud-tag">STATE <b id="hudState">STANDBY</b></div></div>
+          <div class="hud bottom"><div class="hud-tag">AZ <b id="hudAz">+0.00°</b> · EL <b id="hudEl">+0.00°</b></div><div class="hud-tag">ERROR <b id="hudErr">0.00°</b></div><div class="hud-tag">PHASE <b id="hudPhase">STANDBY</b></div></div>
+        </div>
+        <div class="target-metrics">
+          <div class="tm"><small>Target Position</small><b id="tmPosition">640 × 360 px</b></div>
+          <div class="tm"><small>Predicted Position</small><b id="tmPrediction">—</b></div>
+          <div class="tm"><small>Direction</small><b id="tmDirection">—</b></div>
+          <div class="tm"><small>Last sample</small><b id="tmSample">—</b></div>
+        </div>
+        <div class="intel-grid" style="margin-top:8px">
+          <div class="intel"><small>Target intelligence</small><b id="intelClass">Optical Terminal</b></div>
+          <div class="intel"><small>Detection confidence</small><b id="intelConf">—</b></div>
+          <div class="intel"><small>Velocity estimate</small><b id="intelVelocity">Derived from trajectory</b></div>
+          <div class="intel"><small>Prediction horizon</small><b id="intelHorizon">0.5 s</b></div>
+        </div>
+        <div class="decision"><b>AI DECISION EXPLANATION</b><p id="decisionReason">Waiting for a target detection.</p><strong id="decisionCommand">AI HOLD</strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div><h2>Alignment Control</h2><small>Dynamic pointing error against configured gates.</small></div></div>
+      <div class="card-body">
+        <div class="align-gauge">
+          <div class="gauge">
+            <svg viewBox="0 0 220 130"><path d="M25 108 A85 85 0 0 1 195 108" fill="none" stroke="#e8eef5" stroke-width="18" stroke-linecap="round"/><path id="gaugeArc" d="M25 108 A85 85 0 0 1 195 108" fill="none" stroke="#1769e0" stroke-width="18" stroke-linecap="round" stroke-dasharray="267" stroke-dashoffset="267"/></svg>
+            <div class="gauge-value"><b id="gaugeValue">0.00°</b><small>Angular error</small></div>
+          </div>
+          <div class="meta">
+            <div class="meta-row"><span>Azimuth</span><b id="metaAz">+0.00°</b></div>
+            <div class="meta-row"><span>Elevation</span><b id="metaEl">+0.00°</b></div>
+            <div class="meta-row"><span>Coarse gate</span><b>≤ 2.00°</b></div>
+            <div class="meta-row"><span>Fine gate</span><b>≤ 0.50°</b></div>
+            <div class="meta-row"><span>Phase</span><b id="metaPhase">STANDBY</b></div>
+          </div>
+        </div>
+        <div class="improve"><div class="im-card"><small>Initial</small><b id="beforeError">—</b><span>Pre-alignment</span></div><div class="im-arrow">→</div><div class="im-card"><small>Current</small><b id="afterError">—</b><span id="afterState">STANDBY</span></div></div>
+        <div class="reduction">ERROR REDUCTION <b id="errorReduction">—</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="chart-grid">
+    <div class="chart-card">
+      <div class="card-head"><div><h2>01 · Angular Tracking Error</h2><small>Pointing error convergence from the live simulator telemetry.</small></div><div class="chart-toolbar"><button onclick="FSOC.range(10,this)">10s</button><button onclick="FSOC.range(30,this)">30s</button><button class="active" onclick="FSOC.range(60,this)">60s</button><button onclick="FSOC.range(300,this)">5m</button></div></div>
+      <div class="chart-wrap"><canvas id="angularChart"></canvas></div>
+      <div class="chart-foot"><div class="chart-stat"><small>Current</small><b id="angularCurrent">—</b></div><div class="chart-stat"><small>Fine threshold</small><b>0.50°</b></div><div class="chart-stat"><small>Coarse threshold</small><b>2.00°</b></div></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="card-head"><div><h2>02 · Optical Link Quality</h2><small>Normalized signal strength from the same persisted samples.</small></div><div class="chart-toolbar"><button onclick="FSOC.range(10,this)">10s</button><button onclick="FSOC.range(30,this)">30s</button><button class="active" onclick="FSOC.range(60,this)">60s</button><button onclick="FSOC.range(300,this)">5m</button></div></div>
+      <div class="chart-wrap"><canvas id="signalChart"></canvas></div>
+      <div class="chart-foot"><div class="chart-stat"><small>Current</small><b id="signalCurrent">—</b></div><div class="chart-stat"><small>Average</small><b id="signalAverage">—</b></div><div class="chart-stat"><small>Peak</small><b id="signalPeak">—</b></div></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="card-head"><div><h2>03 · Target Tracking Trajectory</h2><small>Azimuth/elevation error relative to the optical axis and ±0.5° lock region.</small></div><span class="pill blue">±2.5° VIEW</span></div>
+      <div class="chart-wrap"><canvas id="trajectoryChart"></canvas></div>
+      <div class="chart-foot"><div class="chart-stat"><small>Azimuth error</small><b id="trajAz">—</b></div><div class="chart-stat"><small>Elevation error</small><b id="trajEl">—</b></div><div class="chart-stat"><small>Radial error</small><b id="trajRadial">—</b></div></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="card-head"><div><h2>04 · Mission Alignment Performance</h2><small id="performanceDesc">Current session phase timing from persisted PhaseTiming records.</small></div><div class="chart-toolbar"><button id="phasePerfBtn" class="active" onclick="FSOC.performanceMode('phase',this)">PHASE</button><button id="missionPerfBtn" onclick="FSOC.performanceMode('history',this)">HISTORY</button></div></div>
+      <div class="chart-wrap"><canvas id="performanceChart"></canvas></div>
+      <div class="chart-foot"><div class="chart-stat"><small>Acquisition</small><b id="perfAcq">—</b></div><div class="chart-stat"><small>Fine alignment</small><b id="perfFine">—</b></div><div class="chart-stat"><small>Reacquisition</small><b id="perfReacq">—</b></div></div>
+    </div>
+  </section>
+
+  <section class="bottom-grid">
+    <div class="card">
+      <div class="card-head"><div><h2>Mission Timeline & Recent Events</h2><small>Events are read from the existing Event table.</small></div><a href="/event-log" style="font-size:8px">View all →</a></div>
+      <div class="card-body"><div class="timeline" id="events"><div class="event"><time>—</time><i class="event-dot"></i><div><b>SYSTEM</b><span>Waiting for mission telemetry.</span></div><em class="sev">INFO</em></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h2>Environment & Anomaly Monitor</h2><small>Persisted environmental samples from the active session.</small></div><span class="pill green" id="anomalyPill">NORMAL</span></div>
+      <div class="card-body">
+        <div class="env-grid">
+          <div class="env"><small>Atmospheric turbulence</small><b id="envTurb">—</b><div class="env-track"><i id="envTurbBar" style="width:0"></i></div></div>
+          <div class="env"><small>Visibility</small><b id="envVisibility">—</b><div class="env-track"><i id="envVisibilityBar" style="width:0"></i></div></div>
+          <div class="env"><small>Platform vibration</small><b id="envVibration">—</b><div class="env-track"><i id="envVibrationBar" style="width:0"></i></div></div>
+          <div class="env"><small>Scintillation</small><b id="envScintillation">—</b><div class="env-track"><i id="envScintillationBar" style="width:0"></i></div></div>
+        </div>
+        <div class="anomaly"><div class="anomaly-head"><b>AI ANOMALY STATE · <span id="anomalyState">NORMAL</span></b><span>Score <b id="anomalyScore">0</b>/100</span></div><div class="anomaly-list"><div><span>Atmospheric turbulence</span><b id="anomTurb">NORMAL</b></div><div><span>Target jitter</span><b id="anomJitter">NORMAL</b></div><div><span>Confidence drop</span><b id="anomConf">NORMAL</b></div><div><span>Tracking stability</span><b id="anomTrack">NORMAL</b></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><h2>Mission Session & Quick Actions</h2><small>Central hub for the existing application routes.</small></div><a href="/analytics" style="font-size:8px">Open Analytics →</a></div>
+    <div class="card-body">
+      <div class="session-grid">
+        <div class="session-item"><small>Session ID</small><b id="sessionId">No active session</b></div>
+        <div class="session-item"><small>Scenario</small><b id="sessionScenario">Nominal Orbital</b></div>
+        <div class="session-item"><small>Started</small><b id="sessionStarted">—</b></div>
+        <div class="session-item"><small>Status</small><b id="sessionStatus">STANDBY</b></div>
+      </div>
+      <div class="perf-grid">
+        <div class="perf"><small>Total missions</small><b id="summarySessions">0</b></div>
+        <div class="perf"><small>Successful lock samples</small><b id="summaryLocks">0</b></div>
+        <div class="perf"><small>Average error</small><b id="summaryAvgError">0.00°</b></div>
+        <div class="perf"><small>Tracking stability</small><b id="summaryTracking">—</b></div>
+      </div>
+      <div class="quick">
+        <button onclick="FSOC.start('auto-align')">START MISSION</button>
+        <a href="/live-tracking">LIVE TRACKING</a>
+        
+        <a href="/scenarios">SCENARIO LAB</a>
+        <a href="/analytics">ANALYTICS</a>
+        <a href="/reports">REPORTS</a>
+        <a href="/event-log">EVENT LOG</a>
+        
+        
+        
+        <a href="/history">MISSION HISTORY</a>
+        
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(() => {
+  const S = {
+    charts:{}, telemetry:[], sessionId:null, rangeSec:60, performance:'phase',
+    view:'sim', timer:null, lastTelemetryAt:0, connected:false
+  };
+  const $ = id => document.getElementById(id);
+  const set = (id,v) => { const n=$(id); if(n) n.textContent=v; };
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const fmt=(v,d=2)=>{v=Number(v); if(!Number.isFinite(v))v=0; return (v>=0?'+':'')+v.toFixed(d)+'°';};
+  const pct=v=>clamp(Number(v)||0,0,100);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const dbmToPct=dbm=>clamp(((Number(dbm)+100)/55)*100,0,100);
+
+  async function json(url,opt){
+    const r=await fetch(url,opt||{cache:'no-store'});
+    if(!r.ok) throw new Error((await r.text())||r.statusText);
+    return r.json();
+  }
+
+  function common(){
+    return {
+      responsive:true, maintainAspectRatio:false, animation:false,
+      interaction:{mode:'nearest',intersect:false},
+      plugins:{
+        legend:{display:true,position:'bottom',labels:{boxWidth:8,font:{size:8},padding:10}},
+        tooltip:{backgroundColor:'#102033',titleFont:{size:9},bodyFont:{size:9},padding:8,displayColors:true}
+      },
+      scales:{
+        x:{grid:{color:'#edf1f5'},ticks:{color:'#718096',font:{size:8},maxTicksLimit:8},title:{display:true,color:'#68788d',font:{size:8,weight:'700'}}},
+        y:{grid:{color:'#edf1f5'},ticks:{color:'#718096',font:{size:8}},title:{display:true,color:'#68788d',font:{size:8,weight:'700'}}}
+      }
+    };
+  }
+
+  function initCharts(){
+    const c=common();
+    S.charts.angular=new Chart($('angularChart'),{
+      type:'line',
+      data:{datasets:[
+        {label:'Angular Error',data:[],borderColor:'#1769e0',backgroundColor:'rgba(23,105,224,.08)',fill:true,borderWidth:2,pointRadius:0,tension:.22},
+        {label:'Fine Lock 0.50°',data:[],borderColor:'#1b9c55',borderDash:[5,4],borderWidth:1.3,pointRadius:0,fill:false},
+        {label:'Coarse 2.00°',data:[],borderColor:'#d99100',borderDash:[5,4],borderWidth:1.3,pointRadius:0,fill:false}
+      ]},
+      options:{...c,parsing:false,scales:{...c.scales,x:{...c.scales.x,type:'linear',title:{display:true,text:'Time (s)',color:'#68788d',font:{size:8,weight:'700'}}},y:{...c.scales.y,min:0,max:2.5,title:{display:true,text:'Angular Error (°)',color:'#68788d',font:{size:8,weight:'700'}}}}}
+    });
+    S.charts.signal=new Chart($('signalChart'),{
+      type:'line',
+      data:{datasets:[
+        {label:'Signal Strength',data:[],borderColor:'#0796c7',backgroundColor:'rgba(7,150,199,.08)',fill:true,borderWidth:2,pointRadius:0,tension:.22},
+        {label:'Good ≥60%',data:[],borderColor:'#1b9c55',borderDash:[5,4],borderWidth:1.2,pointRadius:0,fill:false},
+        {label:'Excellent ≥80%',data:[],borderColor:'#1769e0',borderDash:[3,4],borderWidth:1.2,pointRadius:0,fill:false}
+      ]},
+      options:{...c,parsing:false,scales:{...c.scales,x:{...c.scales.x,type:'linear',title:{display:true,text:'Time (s)',color:'#68788d',font:{size:8,weight:'700'}}},y:{...c.scales.y,min:0,max:100,title:{display:true,text:'Normalized Signal (%)',color:'#68788d',font:{size:8,weight:'700'}}}}}
+    });
+    S.charts.trajectory=new Chart($('trajectoryChart'),{
+      type:'scatter',
+      data:{datasets:[
+        {label:'Trajectory',data:[],showLine:true,borderColor:'#1769e0',backgroundColor:'#1769e0',borderWidth:1.6,pointRadius:1.7,tension:.2},
+        {label:'Fine-lock region',data:[{x:-.5,y:-.5},{x:-.5,y:.5},{x:.5,y:.5},{x:.5,y:-.5},{x:-.5,y:-.5}],showLine:true,borderColor:'#1b9c55',borderDash:[4,4],backgroundColor:'rgba(27,156,85,.06)',pointRadius:0,borderWidth:1.1},
+        {label:'Optical Axis',data:[{x:0,y:0}],backgroundColor:'#d9363e',borderColor:'#d9363e',pointRadius:5,showLine:false},
+        {label:'Current',data:[],backgroundColor:'#1b9c55',borderColor:'#1b9c55',pointRadius:5,showLine:false},
+        {label:'Predicted',data:[],backgroundColor:'#d99100',borderColor:'#d99100',pointRadius:5,showLine:false}
+      ]},
+      options:{...c,parsing:false,scales:{
+        x:{min:-2.5,max:2.5,grid:{color:'#edf1f5'},ticks:{color:'#718096',font:{size:8}},title:{display:true,text:'Azimuth Error (°)',color:'#68788d',font:{size:8,weight:'700'}}},
+        y:{min:-2.5,max:2.5,grid:{color:'#edf1f5'},ticks:{color:'#718096',font:{size:8}},title:{display:true,text:'Elevation Error (°)',color:'#68788d',font:{size:8,weight:'700'}}}
+      }}
+    });
+    S.charts.performance=new Chart($('performanceChart'),{
+      type:'bar',
+      data:{labels:[],datasets:[]},
+      options:{...c,scales:{x:{...c.scales.x,title:{display:true,text:'Mission Phase',color:'#68788d',font:{size:8,weight:'700'}}},y:{...c.scales.y,min:0,title:{display:true,text:'Time (s)',color:'#68788d',font:{size:8,weight:'700'}}}}}
+    });
+  }
+
+  function updateChartData(){
+    if(!S.charts.angular) return;
+    const rows=S.telemetry;
+    if(!rows.length) return;
+    const last=Date.parse(rows[rows.length-1].t);
+    const visible=rows.filter(r => (last-Date.parse(r.t))/1000 <= S.rangeSec);
+    const base=visible.length?Date.parse(visible[0].t):last;
+    const points=visible.map(r=>({x:(Date.parse(r.t)-base)/1000,y:Number(r.total_error)||0}));
+    const fine=points.map(p=>({x:p.x,y:.5})), coarse=points.map(p=>({x:p.x,y:2}));
+    S.charts.angular.data.datasets[0].data=points;
+    S.charts.angular.data.datasets[1].data=fine;
+    S.charts.angular.data.datasets[2].data=coarse;
+    S.charts.angular.update('none');
+
+    const sig=visible.map(r=>({x:(Date.parse(r.t)-base)/1000,y:Number(r.signal_percent)||dbmToPct(r.signal_dbm)}));
+    S.charts.signal.data.datasets[0].data=sig;
+    S.charts.signal.data.datasets[1].data=sig.map(p=>({x:p.x,y:60}));
+    S.charts.signal.data.datasets[2].data=sig.map(p=>({x:p.x,y:80}));
+    S.charts.signal.update('none');
+
+    const tr=visible.map(r=>({x:Number(r.h_error)||0,y:Number(r.v_error)||0}));
+    const lastRow=rows[rows.length-1];
+    S.charts.trajectory.data.datasets[0].data=tr;
+    S.charts.trajectory.data.datasets[3].data=[{x:Number(lastRow.h_error)||0,y:Number(lastRow.v_error)||0}];
+    const prev=rows.length>1?rows[rows.length-2]:lastRow;
+    const vx=(Number(lastRow.h_error)-Number(prev.h_error)||0), vy=(Number(lastRow.v_error)-Number(prev.v_error)||0);
+    S.charts.trajectory.data.datasets[4].data=[{x:clamp((Number(lastRow.h_error)||0)+vx*4,-2.5,2.5),y:clamp((Number(lastRow.v_error)||0)+vy*4,-2.5,2.5)}];
+    S.charts.trajectory.update('none');
+  }
+
+  function updateTargetView(rows,d){
+    const x=clamp((Number(d.target?.x)||640)/1280*100,3,97);
+    const y=clamp((Number(d.target?.y)||360)/720*100,5,95);
+    const dot=$('targetDot'), box=$('targetBox'), pred=$('predDot');
+    if(dot){dot.style.left=x+'%';dot.style.top=y+'%'}
+    if(box){box.style.left=x+'%';box.style.top=y+'%';box.style.width=clamp(130-(Number(d.total_error)||0)*15,72,118)+'px';box.style.height=clamp(92-(Number(d.total_error)||0)*10,55,82)+'px'}
+    const prev=rows.length>1?rows[rows.length-2]:d;
+    const dx=(Number(d.h_error)||0)-(Number(prev.h_error)||0), dy=(Number(d.v_error)||0)-(Number(prev.v_error)||0);
+    const px=clamp(x+dx*90,3,97), py=clamp(y+dy*90,5,95);
+    if(pred){pred.style.left=px+'%';pred.style.top=py+'%'}
+    const trail=rows.slice(-80).map(r=>{
+      const tx=clamp((Number(r.target_x)||640)/1280*100,3,97);
+      const ty=clamp((Number(r.target_y)||360)/720*100,5,95);
+      return tx.toFixed(2)+','+ty.toFixed(2);
+    }).join(' ');
+    if($('trailLine'))$('trailLine').setAttribute('points',trail);
+    $('targetView').classList.toggle('target-lost',!d.detected);
+  }
+
+  function updateHealth(d){
+    const sig=Number(d.signal_percent ?? dbmToPct(d.signal_dbm));
+    const err=Number(d.total_error)||0, conf=Number(d.confidence)||0, align=Number(d.alignment_score)||0;
+    const tracking=clamp(100-err*28,0,100);
+    const health=Math.round(clamp(conf*.30+align*.30+sig*.22+tracking*.18,0,100));
+    set('healthScore',health); set('healthLabel',health>=85?'EXCELLENT':health>=65?'GOOD':health>=45?'DEGRADED':'CRITICAL');
+    set('healthDetection',Math.round(conf)+'%');set('healthAlignment',Math.round(align)+'%');set('healthSignal',Math.round(sig)+'%');set('healthTracking',Math.round(tracking)+'%');
+    set('healthState',d.fine_locked?'Fine lock established · optical link stable':d.phase||'Waiting for telemetry');
+    $('healthRing').style.background=`conic-gradient(#44d47d 0 ${health}%,#edf2f7 ${health}% 100%)`;
+  }
+
+  function updatePhase(phase,fine,detected){
+    const ids=['phaseSearch','phaseAcq','phaseCoarse','phaseFine','phaseLock','phaseLink'];
+    const order=['SEARCHING','ACQUISITION','COARSE ALIGNMENT','FINE ALIGNMENT','FINE LOCK','LINK ESTABLISHED'];
+    let idx=order.indexOf(phase);
+    if(phase==='TARGET LOST'||phase==='REACQUISITION') idx=1;
+    if(idx<0) idx=fine?5:0;
+    ids.forEach((id,i)=>{
+      const n=$(id); n.classList.remove('active','done','failed');
+      const check=n.querySelector('.phase-check'); if(check)check.textContent='';
+      if(phase==='TARGET LOST' && i>0){ if(i===1)n.classList.add('failed'); return; }
+      if(i<idx){n.classList.add('done');if(check)check.textContent='✓ COMPLETE'}
+      else if(i===idx){n.classList.add('active')}
+      if(fine && i===5){n.classList.add('done');if(check)check.textContent='✓ COMPLETE'}
+    });
+    if(phase==='FINE LOCK'){ $('phaseLock').classList.add('done'); $('phaseLock').classList.remove('active');$('phaseLock').querySelector('.phase-check').textContent='✓ COMPLETE';$('phaseLink').classList.add('active');}
+    if(phase==='LINK ESTABLISHED'){ids.forEach(id=>$(id).classList.add('done'));ids.forEach(id=>$(id).querySelector('.phase-check').textContent='✓ COMPLETE')}
+    set('linkStateHero',phase);
+  }
+
+  function updateEnv(env,d){
+    if(!env)return;
+    const names=[['envTurb','envTurbBar','atmospheric_turbulence'],['envVisibility','envVisibilityBar','visibility'],['envVibration','envVibrationBar','platform_vibration'],['envScintillation','envScintillationBar','scintillation']];
+    names.forEach(([label,bar,key])=>{const v=pct(env[key]);set(label,key==='scintillation'?v.toFixed(1)+'%':v<25?'LOW':v<60?'MODERATE':'HIGH');$(bar).style.width=v+'%'});
+    const err=Number(d.total_error)||0, conf=Number(d.confidence)||0, turb=Number(env.atmospheric_turbulence)||0;
+    const score=Math.round(clamp(err*18+(100-conf)*.55+turb*.18,0,100));
+    const state=score>=65?'CRITICAL':score>=35?'WATCH':'NORMAL';
+    set('anomalyScore',score);set('anomalyState',state);set('anomalyPill',state);
+    $('anomalyPill').className='pill '+(state==='NORMAL'?'green':state==='WATCH'?'amber':'red');
+    set('anomTurb',turb>60?'HIGH':turb>25?'MEDIUM':'NORMAL');set('anomJitter',err>.8?'MEDIUM':err>.35?'LOW':'NORMAL');set('anomConf',conf<75?'HIGH':conf<90?'MEDIUM':'NORMAL');set('anomTrack',err>.8?'DEGRADED':'NORMAL');
+  }
+
+  function updateDashboard(d){
+    const err=Number(d.total_error)||0, sig=Number(d.signal_dbm);
+    set('kTarget',d.fine_locked?'FINE LOCK':d.locked?'LOCKED':d.detected?'DETECTED':'TARGET LOST');
+    set('kConfidence',(Number(d.confidence)||0).toFixed(1)+'%');set('kError',err.toFixed(2)+'°');set('kSignal',(Number.isFinite(sig)?sig.toFixed(1):'—')+' dBm');
+    set('kTracking',d.mode==='demo'?'DEMO · AUTO':d.mode==='auto-align'?'AUTO CLOSED-LOOP':d.running===false?'STANDBY':'MANUAL');
+    set('controllerStatus',d.mode==='demo'?'DEMO MODE':d.mode==='auto-align'?'AUTO CLOSED-LOOP':d.running===false?'STANDBY':'MANUAL');
+    set('readyTracking',d.running?'ACTIVE':'STANDBY');
+    set('heroSession',d.session_key||'—');set('sessionId',d.session_key||'No active session');set('sessionScenario',d.scenario||'Nominal Orbital');set('sessionStatus',d.fine_locked?'LINK ESTABLISHED':d.phase||'STANDBY');
+    set('hudConf',(Number(d.confidence)||0).toFixed(1)+'%');set('hudState',d.fine_locked?'LINK ESTABLISHED':d.detected?'TRACKING':'TARGET LOST');set('hudAz',fmt(d.azimuth));set('hudEl',fmt(d.elevation));set('hudErr',err.toFixed(2)+'°');set('hudPhase',d.phase||'STANDBY');
+    set('tmPosition',`${Math.round(Number(d.target?.x)||640)} × ${Math.round(Number(d.target?.y)||360)} px`);
+    const prev=S.telemetry.length>1?S.telemetry[S.telemetry.length-2]:d;
+    const dx=(Number(d.h_error)||0)-(Number(prev.h_error)||0),dy=(Number(d.v_error)||0)-(Number(prev.v_error)||0);
+    set('tmPrediction',`${fmt((Number(d.h_error)||0)+dx*4)} / ${fmt((Number(d.v_error)||0)+dy*4)}`);
+    set('tmDirection',(Number(d.h_error)||0)>0?'↗ NE':(Number(d.h_error)||0)<0?'↙ SW':'→ CENTER');
+    set('tmSample',d.samples||'—');set('intelConf',(Number(d.confidence)||0).toFixed(1)+'%');
+    const speed=Math.sqrt(dx*dx+dy*dy)/0.45;set('intelVelocity',speed<.01?'STABLE':speed.toFixed(2)+' °/s');
+    set('decisionConfidence',(Number(d.confidence)||0).toFixed(1)+'%');
+    if(d.command==='HOLD')set('decisionCommand','AI HOLD · Target centered');
+    else set('decisionCommand','AI COMMAND · '+d.command);
+    const h=Number(d.h_error)||0,v=Number(d.v_error)||0;
+    set('decisionReason',d.detected?`Target centroid is ${Math.abs(h).toFixed(2)}° ${h>=0?'right':'left'} and ${Math.abs(v).toFixed(2)}° ${v>=0?'below':'above'} the optical axis.`:'Beacon unavailable; recovery controller is searching.');
+    set('gaugeValue',err.toFixed(2)+'°');set('metaAz',fmt(d.azimuth));set('metaEl',fmt(d.elevation));set('metaPhase',d.phase||'STANDBY');set('angularCurrent',err.toFixed(2)+'°');
+    const arc=clamp(err/2.5,0,1);$('gaugeArc').style.strokeDashoffset=String(267-(267*arc));
+    const first=S.telemetry[0];const initial=first?Number(first.total_error):err;set('beforeError',initial.toFixed(2)+'°');set('afterError',err.toFixed(2)+'°');set('afterState',d.fine_locked?'FINE LOCK':d.phase||'STANDBY');set('errorReduction',(initial>0?clamp((1-err/initial)*100,0,100):0).toFixed(1)+'%');
+    set('trajAz',fmt(d.h_error));set('trajEl',fmt(d.v_error));set('trajRadial',err.toFixed(2)+'°');
+    updateHealth(d);updatePhase(d.phase,d.fine_locked,d.detected);
+    updateTargetView(S.telemetry,d);
+  }
+
+  function updateSessionStats(){
+    if(!S.telemetry.length)return;
+    const sig=S.telemetry.map(r=>Number(r.signal_percent)||dbmToPct(r.signal_dbm));
+    set('signalCurrent',Math.round(sig[sig.length-1])+'%');set('signalAverage',Math.round(sig.reduce((a,b)=>a+b,0)/sig.length)+'%');set('signalPeak',Math.round(Math.max(...sig))+'%');
+    const last=S.telemetry[S.telemetry.length-1];
+    updateChartData();
+    if(last.environment)updateEnv(last.environment,last);
+  }
+
+  function replaceTelemetry(rows){
+    if(!Array.isArray(rows))return;
+    S.telemetry=rows.slice(-1000);
+    updateSessionStats();
+  }
+
+  async function pollTelemetry(){
+    try{
+      const state=await json('/api/state');
+      if(state && state.session_id){
+        if(S.sessionId!==state.session_id){S.sessionId=state.session_id;S.telemetry=[]}
+        updateDashboard(state);
+        const data=await json(`/api/dashboard/telemetry?session_id=${state.session_id}&limit=1000`);
+        replaceTelemetry(data.readings||[]);
+        renderPerformance(data);
+        set('sessionStarted',data.session?.started_at?new Date(data.session.started_at).toLocaleTimeString([], {hour12:false}):'—');
+        set('perfAcq',(data.performance?.acquisition_seconds||0).toFixed(2)+' s');set('perfFine',(data.performance?.fine_alignment_seconds||0).toFixed(2)+' s');set('perfReacq',(data.performance?.reacquisition_seconds||0).toFixed(2)+' s');
+        updateDashboard(state);
+      } else {
+        set('mcConnection','TELEMETRY STANDBY');
+      }
+      S.connected=true;S.lastTelemetryAt=Date.now();set('mcConnection','TELEMETRY ONLINE');
+    }catch(e){
+      S.connected=false;set('mcConnection','TELEMETRY DISCONNECTED');$('fsocDashboard').classList.add('offline');
+      console.warn(e);
+    }
+  }
+
+  async function loadSummary(){
+    try{
+      const [dash,analytics,sessions]=await Promise.all([json('/api/dashboard'),json('/api/analytics'),json('/api/sessions')]);
+      set('kSessions',dash.sessions||0);set('summarySessions',dash.sessions||0);set('summaryLocks',dash.locks||0);set('summaryAvgError',Number(analytics.kpi?.avg_error||0).toFixed(2)+'°');
+      const tracking=Number(analytics.kpi?.avg_error||0);set('summaryTracking',clamp(100-tracking*28,0,100).toFixed(0)+'%');
+      renderEvents(dash.recent_events||[]);
+      if(sessions?.length && !S.sessionId){
+        const latest=sessions[0];S.sessionId=latest.id;
+        set('sessionId',latest.key);set('sessionScenario',latest.scenario);set('sessionStatus',latest.status);
+        const hist=await json(`/api/dashboard/telemetry?session_id=${latest.id}&limit=1000`);
+        replaceTelemetry(hist.readings||[]);renderPerformance(hist);
+        if(hist.readings?.length)updateDashboard(hist.readings[hist.readings.length-1]);
+      }
+    }catch(e){console.warn('Dashboard summary unavailable',e)}
+  }
+
+  async function renderEvents(rows){
+    const box=$('events');if(!box)return;
+    box.innerHTML=(rows||[]).slice(0,8).map(x=>`<div class="event"><time>${esc(x.time)}</time><i class="event-dot"></i><div><b>${esc(x.category)}</b><span>${esc(x.message)}</span></div><em class="sev">${esc(x.severity||'INFO')}</em></div>`).join('') || '<div class="event"><time>—</time><i class="event-dot"></i><div><b>SYSTEM</b><span>No recent events.</span></div><em class="sev">INFO</em></div>';
+  }
+
+  async function renderPerformance(data){
+    if(!S.charts.performance)return;
+    if(S.performance==='phase'){
+      const p=data?.performance||{};
+      S.charts.performance.data.labels=['Acquisition','Coarse Align','Fine Align','Reacquisition'];
+      S.charts.performance.data.datasets=[{label:'Current session',data:[p.acquisition_seconds||0,p.coarse_alignment_seconds||0,p.fine_alignment_seconds||0,p.reacquisition_seconds||0],backgroundColor:'#1769e0',borderRadius:5,maxBarThickness:34}];
+      set('performanceDesc','Current session phase timing from persisted PhaseTiming records.');
+    }else{
+      try{
+        const h=await json('/api/analytics/historical?limit=8');
+        const rows=h.sessions||[];
+        S.charts.performance.data.labels=rows.map((r,i)=>'M'+String(i+1).padStart(2,'0'));
+        S.charts.performance.data.datasets=[
+          {label:'Acquisition',data:rows.map(r=>r.acquisition_seconds||0),backgroundColor:'#1769e0',borderRadius:4,maxBarThickness:22},
+          {label:'Fine Alignment',data:rows.map(r=>r.fine_alignment_seconds||0),backgroundColor:'#0796c7',borderRadius:4,maxBarThickness:22},
+          {label:'Reacquisition',data:rows.map(r=>r.reacquisition_seconds||0),backgroundColor:'#d99100',borderRadius:4,maxBarThickness:22}
+        ];
+        set('performanceDesc','Last missions from the historical session-performance API.');
+      }catch(e){console.warn(e)}
+    }
+    S.charts.performance.update('none');
+  }
+
+  const FSOC = window.FSOC = {
+    async start(mode){
+      try{
+        const scenario=$('scenarioSelect').value;
+        const r=await json('/api/session/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,scenario})});
+        S.sessionId=r.session_id;S.telemetry=[];
+        $('fsocDashboard').classList.remove('offline');
+        set('heroSession',r.session_key);set('sessionId',r.session_key);set('sessionScenario',scenario);set('sessionStatus','STARTING');
+        if(S.timer)clearInterval(S.timer);
+        await pollTelemetry();
+        S.timer=setInterval(pollTelemetry,800);
+      }catch(e){console.error(e);alert('Could not start mission: '+e.message)}
+    },
+    async stop(){
+      try{
+        await json('/api/session/stop',{method:'POST'});
+        if(S.timer){clearInterval(S.timer);S.timer=null}
+        await loadSummary();
+        await pollTelemetry();
+      }catch(e){console.error(e);alert('Could not stop mission: '+e.message)}
+    },
+    async applyScenario(){
+      try{
+        const scenario=$('scenarioSelect').value;
+        await json('/api/scenario',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scenario})});
+        set('sessionScenario',scenario);
+        if(S.sessionId) await pollTelemetry();
+      }catch(e){alert('Scenario change failed: '+e.message)}
+    },
+    async setView(view){
+      S.view=view;
+      $('simViewBtn').classList.toggle('active',view==='sim');$('cameraViewBtn').classList.toggle('active',view==='camera');
+      $('simLayer').classList.toggle('hidden',view!=='sim');$('liveCamera').classList.toggle('hidden',view!=='camera');
+      if(view==='camera'){
+        try{await json('/api/live/start',{method:'POST'});set('mcConnection','LIVE CAMERA ONLINE')}catch(e){console.warn(e);alert('Live camera could not start: '+e.message)}
+      }
+    },
+    range(n,btn){
+      S.rangeSec=n;document.querySelectorAll('.chart-toolbar button').forEach(b=>{if(['10s','30s','60s','5m'].includes(b.textContent.trim()))b.classList.remove('active')});btn.classList.add('active');updateChartData();
+    },
+    async performanceMode(mode,btn){
+      S.performance=mode;document.querySelectorAll('#phasePerfBtn,#missionPerfBtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+      try{
+        const data=S.sessionId?await json(`/api/dashboard/telemetry?session_id=${S.sessionId}&limit=1000`):null;
+        await renderPerformance(data);
+      }catch(e){console.warn(e)}
+    }
+  };
+
+  async function boot(){
+    initCharts();
+    await loadSummary();
+    if(S.sessionId){
+      try{
+        const st=await json('/api/state');
+        if(st?.session_id===S.sessionId) updateDashboard(st);
+      }catch(e){}
+      await pollTelemetry();
+      if(stillActive()){S.timer=setInterval(pollTelemetry,800)}
+    }
+    window.addEventListener('beforeunload',()=>{if(S.timer)clearInterval(S.timer)});
+  }
+
+  function stillActive(){
+    return document.getElementById('sessionStatus')?.textContent==='ACTIVE' ||
+           document.getElementById('sessionStatus')?.textContent==='FINE LOCK' ||
+           document.getElementById('sessionStatus')?.textContent==='LINK ESTABLISHED' ||
+           document.getElementById('controllerStatus')?.textContent.includes('AUTO') ||
+           document.getElementById('controllerStatus')?.textContent.includes('DEMO');
+  }
+
+  boot();
+})();
+</script>
+{% endblock %}

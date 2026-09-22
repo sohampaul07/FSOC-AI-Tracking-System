@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <b>REPORT CENTER</b>
+    <span>Interconnected telemetry reports from Live Tracking and Scenarios.</span>
+  </div>
+  <div class="report-sync"><span class="report-sync-dot"></span> LIVE DATABASE SYNC</div>
+</div>
+
+<div class="report-tabs">
+  <button class="report-tab active" data-tab="simulated" onclick="switchReportTab('simulated')">01 · SIMULATED CAMERA</button>
+  <button class="report-tab" data-tab="live" onclick="switchReportTab('live')">02 · LIVE AI CAMERA</button>
+  <button class="report-tab" data-tab="scenarios" onclick="switchReportTab('scenarios')">03 · SCENARIO REPORTS</button>
+</div>
+
+<section id="reportPanelSimulated" class="report-panel active">
+  <div class="report-section-head">
+    <div><h2>Live Tracking · Simulated Scenario Camera</h2><p>Every simulator session is stored automatically with tracking, alignment and telemetry measurements.</p></div>
+    <span class="pill blue">SQLITE · SESSION LOGS</span>
+  </div>
+  <div class="report-kpis" id="simReportKpis"></div>
+  <div class="report-list" id="simReportList"><div class="report-loading">Loading simulated tracking reports…</div></div>
+</section>
+
+<section id="reportPanelLive" class="report-panel">
+  <div class="report-section-head">
+    <div><h2>Live Tracking · Live AI Camera</h2><p>Each Live AI Camera run is stored separately with its OpenCV/YOLO detection telemetry.</p></div>
+    <span class="pill green">LIVE PIPELINE</span>
+  </div>
+  <div class="report-kpis" id="liveReportKpis"></div>
+  <div class="report-list" id="liveReportList"><div class="report-loading">Loading live camera reports…</div></div>
+</section>
+
+<section id="reportPanelScenarios" class="report-panel">
+  <div class="report-section-head">
+    <div><h2>Scenarios · Consolidated Reports</h2><p>Telemetry collected from all configured scenarios is grouped here for direct PDF export.</p></div>
+    <span class="pill blue">6 SCENARIOS</span>
+  </div>
+  <div class="scenario-report-grid" id="scenarioReportList"><div class="report-loading">Loading scenario reports…</div></div>
+</section>
+
+<div id="reportPdfModal" class="report-modal" style="display:none">
+  <div class="report-modal-backdrop" onclick="closeReportPdf()"></div>
+  <div class="report-modal-body">
+    <div class="report-modal-head">
+      <b id="reportPdfTitle">REPORT PREVIEW</b>
+      <div>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeReportPdf()">Close</button>
+      </div>
+    </div>
+    <iframe id="reportPdfFrame" src="" title="Report preview"></iframe>
+  </div>
+</div>
+
+<style>
+.report-sync{font-size:8px;font-weight:900;letter-spacing:.7px;color:#168548;background:#e9faf2;border:1px solid #bcebd2;border-radius:20px;padding:7px 10px}
+.report-sync-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#27ca87;margin-right:5px;box-shadow:0 0 7px rgba(39,202,135,.7)}
+.report-tabs{display:flex;gap:7px;margin-bottom:14px;border-bottom:1px solid #dce6f0;padding-bottom:8px}
+.report-tab{border:1px solid #d5e0ea;background:#fff;color:#62758a;border-radius:6px;padding:9px 13px;font-size:9px;font-weight:900;cursor:pointer;letter-spacing:.25px}
+.report-tab:hover{border-color:#8db7d8;color:#1769e0}
+.report-tab.active{background:#1769e0;border-color:#1769e0;color:#fff}
+.report-panel{display:none}.report-panel.active{display:block}
+.report-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
+.report-section-head h2{margin:0;color:#17304d;font-size:14px;font-weight:900}
+.report-section-head p{margin:4px 0 0;color:#718298;font-size:9px}
+.report-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px}
+.report-kpi{background:#fff;border:1px solid #dce6f0;border-radius:8px;padding:11px 12px}
+.report-kpi small{display:block;color:#8392a2;font-size:7px;font-weight:900;letter-spacing:.5px;text-transform:uppercase}
+.report-kpi b{display:block;color:#17304d;font-size:17px;margin-top:4px}
+.report-list{display:flex;flex-direction:column;gap:7px}
+.report-row{display:grid;grid-template-columns:1.5fr 1fr .8fr .8fr .8fr auto;align-items:center;gap:10px;background:#fff;border:1px solid #dce6f0;border-radius:8px;padding:11px 12px}
+.report-row:hover{border-color:#a8c9e3;box-shadow:0 3px 12px rgba(35,77,112,.06)}
+.report-main b{display:block;color:#1b3955;font-size:10px}.report-main small{display:block;color:#8493a4;font-size:8px;margin-top:3px}
+.report-stat small{display:block;color:#8a99a8;font-size:7px;font-weight:800;text-transform:uppercase}.report-stat b{display:block;color:#29425b;font-size:9px;margin-top:2px}
+.report-actions{display:flex;gap:5px;justify-content:flex-end}
+.report-actions .btn{font-size:8px!important;padding:6px 8px!important}
+.scenario-report-grid{display:flex;flex-direction:column;gap:10px}
+.scenario-report-card{background:#fff;border:1px solid #dce6f0;border-radius:9px;padding:13px}
+.scenario-report-group{background:#fff;border:1px solid #dce6f0;border-radius:9px;overflow:hidden}.scenario-report-group-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;background:#f7f9fc;border-bottom:1px solid #e6edf4}.scenario-report-group-head b{display:block;color:#17304d;font-size:11px}.scenario-report-group-head span{display:block;color:#78899d;font-size:8px;margin-top:4px}.scenario-group-meta{font-size:7px;font-weight:900;color:#168548;white-space:nowrap}.scenario-session-list{display:flex;flex-direction:column;gap:7px;padding:9px}.scenario-session-row{display:grid;grid-template-columns:1.5fr .7fr .8fr .8fr .8fr auto;align-items:center;gap:10px;border:1px solid #e1e8ef;border-radius:7px;padding:10px 11px;background:#fff}.scenario-session-row:hover{border-color:#a8c9e3;box-shadow:0 3px 12px rgba(35,77,112,.05)}
+.scenario-report-top{display:flex;justify-content:space-between;gap:10px}.scenario-report-top b{font-size:11px;color:#17304d}.scenario-report-top span{font-size:7px;font-weight:900;color:#168548;background:#e9faf2;border:1px solid #bcebd2;border-radius:10px;padding:4px 6px}
+.scenario-desc{font-size:8px;color:#78899d;margin:5px 0 10px}
+.scenario-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.scenario-metric{background:#f5f8fb;border-radius:6px;padding:7px}.scenario-metric small{display:block;color:#8493a4;font-size:6px;font-weight:800;text-transform:uppercase}.scenario-metric b{display:block;color:#29425b;font-size:9px;margin-top:2px}
+.scenario-actions{display:flex;justify-content:flex-end;margin-top:10px}.scenario-actions .btn{font-size:8px!important;padding:6px 9px!important}
+.report-loading{padding:24px;text-align:center;color:#8292a3;font-size:9px;background:#fff;border:1px dashed #d4e0ea;border-radius:8px}
+.report-empty{padding:18px;color:#8292a3;font-size:9px;background:#fff;border:1px solid #dce6f0;border-radius:8px}
+.report-modal{position:fixed;inset:0;z-index:1050;display:flex;align-items:center;justify-content:center}
+.report-modal-backdrop{position:absolute;inset:0;background:rgba(10,18,30,.55)}
+.report-modal-body{position:relative;width:min(1000px,94vw);height:88vh;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.report-modal-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eef2f7;color:#17304d;font-size:11px}
+.report-modal-body iframe{flex:1;border:0;width:100%}
+@media(max-width:900px){.report-kpis{grid-template-columns:repeat(2,1fr)}.report-row{grid-template-columns:1fr 1fr}.report-actions{justify-content:flex-start}.scenario-report-grid{grid-template-columns:1fr}.scenario-session-row{grid-template-columns:1fr 1fr}.scenario-group-meta{white-space:normal;text-align:right}}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>initReports();</script>
+{% endblock %}

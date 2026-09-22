@@ -1,0 +1,5338 @@
+{% extends 'base.html' %}
+
+{% block title %}
+<b>AI BASED CAMERA</b>
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+/* =========================================================
+   SIMULATED SATELLITE AI CAMERA
+   NEW DESIGN — ONLY SIMULATED MODE
+   ========================================================= */
+
+#simPanel{
+  width:100%;
+}
+
+.sim-satellite-layout{
+  display:grid;
+  grid-template-columns:minmax(0, 2.25fr) minmax(310px, .75fr);
+  gap:14px;
+  width:100%;
+  align-items:start;
+}
+
+
+/* =========================================================
+   MAIN AI CAMERA
+   ========================================================= */
+
+.sim-ai-camera-panel{
+  width:100%;
+  overflow:hidden;
+  padding:0!important;
+}
+
+.sim-camera-head{
+  height:52px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 15px;
+  border-bottom:1px solid #dce6f0;
+  background:#fff;
+}
+
+.sim-camera-title{
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+
+.sim-camera-title-icon{
+  width:29px;
+  height:29px;
+  display:grid;
+  place-items:center;
+  border-radius:7px;
+  background:#e9f4ff;
+  color:#1769e0;
+  font-size:15px;
+}
+
+.sim-camera-title-text{
+  font-size:14px;
+  font-weight:900;
+  color:#17304d;
+}
+
+.sim-camera-subtitle{
+  font-size:9px;
+  color:#72839a;
+  margin-top:2px;
+}
+
+.sim-camera-status{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.sim-camera-online{
+  font-size:9px;
+  font-weight:900;
+  color:#168548;
+  background:#e9faf2;
+  border:1px solid #bcebd2;
+  border-radius:20px;
+  padding:5px 9px;
+}
+
+.sim-camera-online .dot{
+  display:inline-block;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#27ca87;
+  margin-right:4px;
+  box-shadow:0 0 7px rgba(39,202,135,.7);
+}
+
+.sim-camera-time{
+  font-size:9px;
+  color:#708198;
+  font-weight:700;
+}
+
+
+/* =========================================================
+   CAMERA VIEWPORT
+   ========================================================= */
+
+#satelliteCamera{
+  position:relative;
+  width:100%;
+  height:570px;
+  overflow:hidden;
+  background:
+    radial-gradient(
+      ellipse at 50% 20%,
+      rgba(28,72,118,.23),
+      transparent 48%
+    ),
+    radial-gradient(
+      ellipse at 30% 70%,
+      rgba(16,53,91,.20),
+      transparent 45%
+    ),
+    #010812;
+}
+
+
+/* STAR FIELD */
+
+#satelliteCamera .space-stars,
+#satelliteCamera .space-stars:before,
+#satelliteCamera .space-stars:after{
+  position:absolute;
+  inset:0;
+  content:"";
+  pointer-events:none;
+}
+
+#satelliteCamera .space-stars{
+  background-image:
+    radial-gradient(circle,rgba(255,255,255,.85) 0 1px,transparent 1.5px),
+    radial-gradient(circle,rgba(120,205,255,.7) 0 1px,transparent 1.5px),
+    radial-gradient(circle,rgba(255,255,255,.45) 0 .8px,transparent 1.3px);
+  background-size:
+    83px 79px,
+    131px 117px,
+    57px 61px;
+  background-position:
+    12px 10px,
+    35px 23px,
+    4px 17px;
+  opacity:.72;
+}
+
+#satelliteCamera .space-stars:before{
+  background:
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      transparent 48%,
+      rgba(5,20,38,.2) 49%,
+      rgba(5,20,38,.8) 100%
+    );
+}
+
+#satelliteCamera .space-stars:after{
+  background:
+    radial-gradient(
+      ellipse at 50% 62%,
+      transparent 0%,
+      transparent 38%,
+      rgba(0,0,0,.42) 100%
+    );
+}
+
+
+/* =========================================================
+   EARTH HORIZON
+   ========================================================= */
+
+.sim-earth{
+  position:absolute;
+  left:-12%;
+  right:-12%;
+  bottom:-62%;
+  height:86%;
+  border-radius:50% 50% 0 0;
+  background:
+    radial-gradient(
+      ellipse at 50% 7%,
+      rgba(99,197,255,.98) 0%,
+      rgba(27,104,168,.95) 5%,
+      rgba(8,44,79,.98) 18%,
+      rgba(3,20,39,1) 48%,
+      rgba(1,10,20,1) 100%
+    );
+  box-shadow:
+    0 -5px 15px rgba(87,202,255,.8),
+    0 -15px 42px rgba(43,165,237,.35),
+    inset 0 28px 70px rgba(0,0,0,.38);
+  transform:rotate(-2deg);
+}
+
+.sim-earth:before{
+  content:"";
+  position:absolute;
+  left:4%;
+  right:4%;
+  top:7%;
+  height:28%;
+  border-radius:50%;
+  opacity:.65;
+  background:
+    radial-gradient(
+      ellipse at 20% 35%,
+      rgba(255,255,255,.75) 0 2%,
+      transparent 2.8%
+    ),
+    radial-gradient(
+      ellipse at 32% 58%,
+      rgba(255,255,255,.55) 0 3%,
+      transparent 4%
+    ),
+    radial-gradient(
+      ellipse at 58% 38%,
+      rgba(255,255,255,.68) 0 2.2%,
+      transparent 3%
+    ),
+    radial-gradient(
+      ellipse at 76% 60%,
+      rgba(255,255,255,.55) 0 3%,
+      transparent 4%
+    ),
+    radial-gradient(
+      ellipse at 45% 72%,
+      rgba(255,255,255,.4) 0 2%,
+      transparent 3%
+    );
+  filter:blur(4px);
+}
+
+.sim-earth:after{
+  content:"";
+  position:absolute;
+  left:5%;
+  right:5%;
+  top:0;
+  height:14%;
+  border-radius:50%;
+  background:linear-gradient(
+    180deg,
+    rgba(190,239,255,.92),
+    rgba(57,177,235,.15),
+    transparent
+  );
+  filter:blur(2px);
+}
+
+
+/* =========================================================
+   CAMERA HUD
+   ========================================================= */
+
+.sim-camera-hud{
+  position:absolute;
+  z-index:40;
+  left:14px;
+  top:12px;
+  right:14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  pointer-events:none;
+}
+
+.sim-camera-hud-left{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.sim-hud-chip{
+  display:inline-flex;
+  width:max-content;
+  align-items:center;
+  gap:6px;
+  padding:7px 10px;
+  border-radius:5px;
+  background:rgba(3,15,28,.83);
+  border:1px solid rgba(54,151,225,.65);
+  color:#cceeff;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.35px;
+  backdrop-filter:blur(5px);
+}
+
+.sim-hud-chip.green{
+  color:#74f0b4;
+  border-color:rgba(65,229,153,.55);
+}
+
+.sim-hud-right{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:5px;
+}
+
+.sim-hud-value{
+  padding:6px 9px;
+  background:rgba(3,15,28,.78);
+  border:1px solid rgba(100,170,220,.4);
+  border-radius:5px;
+  color:#cbe7ff;
+  font-size:8px;
+  font-weight:800;
+}
+
+
+/* =========================================================
+   CAMERA CROSSHAIR
+   ========================================================= */
+
+.sim-boresight{
+  position:absolute;
+  z-index:25;
+  left:50%;
+  top:50%;
+  width:46px;
+  height:46px;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+}
+
+.sim-boresight:before,
+.sim-boresight:after{
+  content:"";
+  position:absolute;
+  background:rgba(100,221,255,.78);
+  box-shadow:0 0 7px rgba(70,205,255,.4);
+}
+
+.sim-boresight:before{
+  left:50%;
+  top:0;
+  bottom:0;
+  width:1px;
+}
+
+.sim-boresight:after{
+  top:50%;
+  left:0;
+  right:0;
+  height:1px;
+}
+
+.sim-boresight-ring{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:28px;
+  height:28px;
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(100,220,255,.72);
+  border-radius:50%;
+}
+
+.sim-boresight-label{
+  position:absolute;
+  top:calc(50% + 29px);
+  left:50%;
+  transform:translateX(-50%);
+  color:rgba(155,221,255,.7);
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.7px;
+}
+
+
+/* =========================================================
+   CAMERA FOV
+   ========================================================= */
+
+.sim-fov{
+  position:absolute;
+  z-index:20;
+  left:7%;
+  right:7%;
+  top:8%;
+  bottom:10%;
+  border:1px dashed rgba(93,196,255,.3);
+  pointer-events:none;
+}
+
+.sim-fov:before,
+.sim-fov:after{
+  content:"";
+  position:absolute;
+  width:20px;
+  height:20px;
+}
+
+.sim-fov:before{
+  left:-1px;
+  top:-1px;
+  border-left:2px solid #48c8ff;
+  border-top:2px solid #48c8ff;
+}
+
+.sim-fov:after{
+  right:-1px;
+  bottom:-1px;
+  border-right:2px solid #48c8ff;
+  border-bottom:2px solid #48c8ff;
+}
+
+
+/* =========================================================
+   SATELLITES
+   ========================================================= */
+
+.sim-satellite{
+  position:absolute;
+  z-index:18;
+  width:90px;
+  height:90px;
+  transform:translate(-50%,-50%);
+  cursor:pointer;
+  transition:
+    filter .2s,
+    opacity .2s;
+}
+
+.sim-satellite:hover{
+  filter:brightness(1.25);
+}
+
+.sim-satellite.active{
+  z-index:30;
+}
+
+.sim-satellite.dimmed{
+  opacity:.62;
+}
+
+.sat-orbit-ring{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:72px;
+  height:72px;
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(55,188,255,.48);
+  border-radius:50%;
+  opacity:.9;
+}
+
+.sat-orbit-ring:before,
+.sat-orbit-ring:after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:-7px;
+  width:13px;
+  height:13px;
+  transform:translateX(-50%);
+  border-left:1px solid rgba(78,201,255,.8);
+  border-right:1px solid rgba(78,201,255,.8);
+}
+
+.sat-orbit-ring:after{
+  top:auto;
+  bottom:-7px;
+}
+
+.sat-core{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:22px;
+  height:25px;
+  transform:translate(-50%,-50%);
+  border-radius:3px;
+  background:
+    linear-gradient(
+      90deg,
+      #d7e8f5 0 18%,
+      #536b83 18% 82%,
+      #d7e8f5 82%
+    );
+  box-shadow:
+    0 0 9px rgba(94,207,255,.7);
+}
+
+.sat-core:before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:-7px;
+  width:5px;
+  height:8px;
+  transform:translateX(-50%);
+  background:#c5d7e5;
+  border-radius:2px;
+}
+
+.sat-core:after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-7px;
+  width:5px;
+  height:8px;
+  transform:translateX(-50%);
+  background:#9fb6ca;
+  border-radius:2px;
+}
+
+.sat-panel{
+  position:absolute;
+  top:50%;
+  width:28px;
+  height:15px;
+  transform:translateY(-50%);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #173e68 0 5px,
+      #296ca4 5px 7px
+    );
+  border:1px solid #5eafe3;
+  box-shadow:0 0 5px rgba(58,161,228,.5);
+}
+
+.sat-panel.left{
+  right:calc(50% + 10px);
+}
+
+.sat-panel.right{
+  left:calc(50% + 10px);
+}
+
+.sat-antenna{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:35px;
+  height:35px;
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(210,236,250,.45);
+  border-radius:50%;
+}
+
+.sat-beacon{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:7px;
+  height:7px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:#35d9ff;
+  box-shadow:
+    0 0 8px 2px rgba(50,207,255,.85),
+    0 0 18px 5px rgba(50,207,255,.32);
+}
+
+.sim-satellite.active .sat-beacon{
+  background:#43f3aa;
+  box-shadow:
+    0 0 9px 3px rgba(67,243,170,.95),
+    0 0 25px 8px rgba(67,243,170,.45);
+  animation:satBeaconPulse 1.4s infinite;
+}
+
+@keyframes satBeaconPulse{
+  0%,100%{
+    transform:translate(-50%,-50%) scale(1);
+  }
+  50%{
+    transform:translate(-50%,-50%) scale(1.45);
+  }
+}
+
+
+/* =========================================================
+   SATELLITE LABEL
+   ========================================================= */
+
+.sat-label{
+  position:absolute;
+  left:50%;
+  bottom:calc(50% + 46px);
+  transform:translateX(-50%);
+  white-space:nowrap;
+  padding:4px 7px;
+  border-radius:4px;
+  background:rgba(3,14,27,.9);
+  border:1px solid rgba(43,151,226,.7);
+  color:#bfeaff;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.3px;
+}
+
+.sim-satellite.active .sat-label{
+  color:#73f2bd;
+  border-color:rgba(63,235,157,.8);
+}
+
+
+/* =========================================================
+   AI TRACKING BOX
+   ========================================================= */
+
+.sim-ai-reticle{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:105px;
+  height:105px;
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(68,237,165,.75);
+  border-radius:50%;
+  box-shadow:
+    0 0 18px rgba(65,236,165,.28),
+    inset 0 0 18px rgba(65,236,165,.08);
+  pointer-events:none;
+  z-index:35;
+  transition:
+    left .18s linear,
+    top .18s linear,
+    width .25s,
+    height .25s;
+}
+
+.sim-ai-reticle:before,
+.sim-ai-reticle:after{
+  content:"";
+  position:absolute;
+  background:#55efb0;
+}
+
+.sim-ai-reticle:before{
+  left:50%;
+  top:-11px;
+  width:1px;
+  height:22px;
+}
+
+.sim-ai-reticle:after{
+  top:50%;
+  left:-11px;
+  height:1px;
+  width:22px;
+}
+
+.sim-reticle-corner{
+  position:absolute;
+  inset:0;
+}
+
+.sim-reticle-corner:before,
+.sim-reticle-corner:after{
+  content:"";
+  position:absolute;
+  width:15px;
+  height:15px;
+}
+
+.sim-reticle-corner:before{
+  left:-1px;
+  top:-1px;
+  border-left:2px solid #64f2bb;
+  border-top:2px solid #64f2bb;
+}
+
+.sim-reticle-corner:after{
+  right:-1px;
+  bottom:-1px;
+  border-right:2px solid #64f2bb;
+  border-bottom:2px solid #64f2bb;
+}
+
+.sim-reticle-label{
+  position:absolute;
+  left:50%;
+  bottom:-25px;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  padding:4px 7px;
+  border-radius:4px;
+  background:rgba(3,18,28,.9);
+  border:1px solid rgba(65,235,159,.55);
+  color:#6cf0b4;
+  font-size:8px;
+  font-weight:900;
+}
+
+
+/* =========================================================
+   TRACK LINE
+   ========================================================= */
+
+.sim-track-svg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:23;
+  pointer-events:none;
+}
+
+.sim-track-svg line{
+  stroke:#55efb0;
+  stroke-width:1.4;
+  stroke-dasharray:5 4;
+  opacity:.72;
+}
+
+
+/* =========================================================
+   CAMERA BOTTOM HUD
+   ========================================================= */
+
+.sim-bottom-hud{
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:13px;
+  z-index:45;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  pointer-events:none;
+}
+
+.sim-camera-info{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+}
+
+.sim-info-chip{
+  padding:5px 8px;
+  border-radius:4px;
+  background:rgba(3,14,27,.83);
+  border:1px solid rgba(76,148,200,.45);
+  color:#b8d8ec;
+  font-size:8px;
+  font-weight:800;
+}
+
+.sim-info-chip b{
+  color:#71f0b7;
+}
+
+
+/* =========================================================
+   RIGHT SIDE — SATELLITE SEARCH
+   ========================================================= */
+
+.sim-side-column{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  min-width:0;
+}
+
+.sim-search-panel{
+  overflow:hidden;
+}
+
+.sim-panel-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:12px 13px;
+  border-bottom:1px solid #e2e9f0;
+}
+
+.sim-panel-head h2{
+  margin:0;
+  font-size:13px;
+  font-weight:900;
+  color:#17304d;
+}
+
+.sim-panel-head span{
+  font-size:8px;
+  color:#718298;
+  font-weight:800;
+}
+
+.sim-search-body{
+  padding:11px;
+}
+
+.sim-search-box{
+  display:flex;
+  gap:6px;
+}
+
+.sim-search-input{
+  min-width:0;
+  flex:1;
+  height:35px;
+  border:1px solid #cfdce8;
+  border-radius:6px;
+  outline:none;
+  padding:0 10px;
+  font-size:10px;
+  color:#263e57;
+  background:#fbfdff;
+}
+
+.sim-search-input:focus{
+  border-color:#4d9be4;
+  box-shadow:0 0 0 2px rgba(54,142,219,.1);
+}
+
+.sim-search-button{
+  height:35px;
+  border:0;
+  border-radius:6px;
+  background:#1769e0;
+  color:white;
+  font-size:9px;
+  font-weight:900;
+  padding:0 13px;
+  cursor:pointer;
+}
+
+.sim-search-button:hover{
+  background:#1259c1;
+}
+
+.sim-search-result{
+  margin-top:8px;
+  font-size:9px;
+  color:#718298;
+  min-height:14px;
+}
+
+
+/* =========================================================
+   SATELLITE LIST
+   ========================================================= */
+
+.sim-satellite-list{
+  max-height:355px;
+  overflow-y:auto;
+  padding:0 9px 9px;
+}
+
+.sim-sat-list-item{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:9px 8px;
+  margin-top:5px;
+  border:1px solid #e1e8ef;
+  border-radius:7px;
+  background:#fbfdff;
+  cursor:pointer;
+  transition:
+    background .18s,
+    border-color .18s,
+    transform .18s;
+}
+
+.sim-sat-list-item:hover{
+  background:#f1f7fd;
+  border-color:#a9cde8;
+  transform:translateX(2px);
+}
+
+.sim-sat-list-item.active{
+  background:#eafaf3;
+  border-color:#8bd9b5;
+  box-shadow:inset 3px 0 0 #25c98a;
+}
+
+.sim-sat-list-dot{
+  width:10px;
+  height:10px;
+  flex:none;
+  border-radius:50%;
+  background:#2399e8;
+  box-shadow:0 0 7px rgba(35,153,232,.5);
+}
+
+.sim-sat-list-item.active .sim-sat-list-dot{
+  background:#28cf8a;
+  box-shadow:0 0 8px rgba(40,207,138,.65);
+}
+
+.sim-sat-list-text{
+  min-width:0;
+  flex:1;
+}
+
+.sim-sat-list-name{
+  color:#1e3c59;
+  font-size:10px;
+  font-weight:900;
+}
+
+.sim-sat-list-type{
+  margin-top:2px;
+  color:#78899d;
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.25px;
+}
+
+.sim-sat-list-state{
+  font-size:7px;
+  font-weight:900;
+  color:#168548;
+}
+
+
+/* =========================================================
+   SELECTED SATELLITE INFO
+   ========================================================= */
+
+.sim-selected-panel{
+  overflow:hidden;
+}
+
+.sim-selected-body{
+  padding:12px;
+}
+
+.sim-selected-card{
+  display:grid;
+  grid-template-columns:92px 1fr;
+  gap:12px;
+  align-items:center;
+}
+
+.sim-selected-preview{
+  position:relative;
+  height:82px;
+  border-radius:6px;
+  overflow:hidden;
+  background:
+    radial-gradient(circle,#133b5c,#061422 65%);
+  border:1px solid #b7d6e9;
+}
+
+.sim-selected-preview:before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:60px;
+  height:60px;
+  transform:translate(-50%,-50%);
+  border:1px solid #55e7ae;
+  border-radius:50%;
+  box-shadow:0 0 13px rgba(67,229,165,.25);
+}
+
+.sim-selected-preview:after{
+  content:"✦";
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  color:#cfeeff;
+  font-size:24px;
+  text-shadow:0 0 13px #42d8ff;
+}
+
+.sim-selected-name{
+  color:#17304d;
+  font-size:13px;
+  font-weight:900;
+}
+
+.sim-selected-status{
+  margin-top:4px;
+  color:#168548;
+  font-size:8px;
+  font-weight:900;
+}
+
+.sim-selected-grid{
+  margin-top:12px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+}
+
+.sim-selected-fact{
+  padding:7px 8px;
+  border-radius:6px;
+  background:#f5f8fb;
+}
+
+.sim-selected-fact small{
+  display:block;
+  color:#8493a4;
+  font-size:7px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.sim-selected-fact b{
+  display:block;
+  color:#29425b;
+  font-size:10px;
+  margin-top:2px;
+}
+
+
+/* =========================================================
+   SIM CONTROL BAR
+   ========================================================= */
+
+.sim-control-bar{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  padding:11px 14px;
+  border-top:1px solid rgba(255,255,255,.08);
+  background:#fff;
+}
+
+.sim-control-bar .btn{
+  font-size:9px;
+  font-weight:800;
+}
+
+
+/* =========================================================
+   SIM TELEMETRY BELOW CAMERA
+   ========================================================= */
+
+.sim-new-telemetry{
+  margin-top:14px;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+}
+
+.sim-mini-card{
+  padding:11px 12px;
+}
+
+.sim-mini-card small{
+  display:block;
+  color:#8291a3;
+  font-size:7px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.35px;
+}
+
+.sim-mini-card b{
+  display:block;
+  color:#1d3b57;
+  font-size:13px;
+  margin-top:3px;
+}
+
+
+
+/* =========================================================
+   SIMULATED CAMERA LIVE TELEMETRY + TRACKING ERROR
+   ========================================================= */
+
+.sim-live-telemetry-panel{
+  margin-top:14px;
+  width:100%;
+  overflow:hidden;
+}
+
+.sim-live-telemetry-panel .panel-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.sim-live-telemetry-panel .telemetry-grid{
+  width:100%;
+}
+
+.sim-tracking-error-panel{
+  margin-top:14px;
+  width:100%;
+  overflow:hidden;
+}
+
+.sim-tracking-error-panel .tracking-error-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding:14px 14px 4px;
+}
+
+.sim-tracking-error-panel .tracking-error-title-wrap h2{
+  margin:0;
+  color:#17304d;
+  font-size:15px;
+  font-weight:800;
+}
+
+.sim-tracking-error-panel .tracking-error-title-wrap p{
+  margin:5px 0 0;
+  color:#718298;
+  font-size:10px;
+  line-height:1.45;
+}
+
+.sim-tracking-error-panel .tracking-error-current{
+  min-width:105px;
+  padding-left:10px;
+  border-left:3px solid #67aef2;
+}
+
+.sim-tracking-error-panel .tracking-error-current span{
+  display:block;
+  color:#65758a;
+  font-size:9px;
+  font-weight:700;
+  line-height:1.2;
+}
+
+.sim-tracking-error-panel .tracking-error-current strong{
+  display:block;
+  color:#172d45;
+  font-size:20px;
+  font-weight:900;
+  line-height:1.25;
+  margin-top:2px;
+}
+
+.sim-tracking-error-chart-wrap{
+  position:relative;
+  width:100%;
+  height:230px;
+  padding:10px 14px 30px 48px;
+  box-sizing:border-box;
+}
+
+#simTrackingErrorChart{
+  position:relative;
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.sim-tracking-y-axis{
+  position:absolute;
+  left:10px;
+  top:10px;
+  bottom:30px;
+  width:32px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  align-items:flex-end;
+  pointer-events:none;
+}
+
+.sim-tracking-y-axis span{
+  color:#718298;
+  font-size:9px;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.sim-tracking-x-axis{
+  position:absolute;
+  left:48px;
+  right:14px;
+  bottom:7px;
+  height:16px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  pointer-events:none;
+}
+
+.sim-tracking-x-axis span{
+  color:#718298;
+  font-size:9px;
+  line-height:1;
+}
+
+.sim-tracking-x-axis .time-label{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:10px;
+}
+
+.sim-tracking-error-note{
+  padding:0 14px 13px;
+  color:#718298;
+  font-size:9px;
+  line-height:1.5;
+}
+
+.sim-tracking-error-note strong{
+  color:#31465d;
+}
+
+/* =========================================================
+   SIM RESPONSIVE
+   ========================================================= */
+
+@media(max-width:1100px){
+
+  .sim-satellite-layout{
+    grid-template-columns:minmax(0,1.8fr) minmax(285px,.9fr);
+  }
+
+  #satelliteCamera{
+    height:520px;
+  }
+
+}
+
+@media(max-width:850px){
+
+  .sim-satellite-layout{
+    grid-template-columns:1fr;
+  }
+
+  #satelliteCamera{
+    height:500px;
+  }
+
+  .sim-side-column{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .sim-selected-panel{
+    grid-column:1/-1;
+  }
+
+  .sim-new-telemetry{
+    grid-template-columns:1fr 1fr;
+  }
+
+}
+
+@media(max-width:600px){
+
+  #satelliteCamera{
+    height:420px;
+  }
+
+  .sim-camera-head{
+    height:auto;
+    min-height:52px;
+    padding:9px 11px;
+  }
+
+  .sim-camera-subtitle{
+    display:none;
+  }
+
+  .sim-camera-time{
+    display:none;
+  }
+
+  .sim-side-column{
+    display:flex;
+    flex-direction:column;
+  }
+
+  .sim-new-telemetry{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .sim-hud-right{
+    display:none;
+  }
+
+  .sim-bottom-hud{
+    left:8px;
+    right:8px;
+  }
+
+}
+
+
+/* =========================================================
+   EXISTING LIVE AI CAMERA CSS
+   ========================================================= */
+
+#modeTabs .nav-link{
+  color:#33465e;
+  font-weight:700;
+  font-size:12px;
+  border-radius:8px;
+  padding:8px 14px;
+}
+
+#modeTabs .nav-link.active{
+  background:#1769e0;
+  color:#fff;
+}
+
+.live-camera-wrap{
+  position:relative;
+  width:100%;
+  height:460px;
+  background:#07111f;
+  overflow:hidden;
+}
+
+.live-camera-wrap img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+.live-camera-wrap canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
+
+.live-camera-wrap .live-empty-msg{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#5c7896;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.5px;
+  text-align:center;
+  padding:20px;
+}
+
+#liveAiPanel{
+  width:100%;
+}
+
+#liveAiPanel .live-ai-main-layout{
+  display:grid !important;
+  grid-template-columns:minmax(0,2fr) minmax(320px,1fr);
+  gap:16px;
+  width:100%;
+  margin:0;
+  padding:0;
+  align-items:start;
+}
+
+#liveAiPanel .live-ai-camera-column{
+  width:100%;
+  min-width:0;
+}
+
+#liveAiPanel .live-ai-side-column{
+  width:100%;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+#liveAiPanel .live-ai-camera-column > .panel{
+  width:100%;
+  margin:0;
+}
+
+#liveAiPanel .live-ai-side-column > .panel{
+  width:100%;
+  margin:0;
+}
+
+.ai-assistant-card{
+  position:relative;
+  overflow:hidden;
+  min-height:250px;
+}
+
+.ai-assistant-card:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:3px;
+  background:linear-gradient(
+    180deg,
+    #22c99a,
+    #1769e0
+  );
+}
+
+.ai-assistant-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.ai-assistant-title{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:800;
+  color:#17304d;
+}
+
+.ai-assistant-icon{
+  width:28px;
+  height:28px;
+  border-radius:8px;
+  display:grid;
+  place-items:center;
+  background:#e7fbf4;
+  color:#15936d;
+  font-size:15px;
+}
+
+.ai-assistant-live{
+  font-size:8px;
+  font-weight:800;
+  color:#15936d;
+  background:#e8faf3;
+  border:1px solid #b9ecd8;
+  border-radius:20px;
+  padding:4px 7px;
+  letter-spacing:.4px;
+}
+
+.ai-assistant-reco{
+  margin:10px 0 9px;
+  padding:11px 12px;
+  border:1px solid #a9e7cc;
+  background:linear-gradient(
+    135deg,
+    #f0fff9,
+    #f7fffc
+  );
+  border-radius:9px;
+}
+
+.ai-assistant-reco .kicker{
+  font-size:8px;
+  font-weight:900;
+  color:#15936d;
+  text-transform:uppercase;
+  letter-spacing:.55px;
+  margin-bottom:4px;
+}
+
+.ai-assistant-reco .main{
+  font-size:13px;
+  font-weight:900;
+  color:#14334d;
+  line-height:1.25;
+}
+
+.ai-assistant-reco .reason{
+  font-size:9px;
+  color:#60758d;
+  line-height:1.45;
+  margin-top:5px;
+}
+
+.ai-assistant-meter{
+  margin:9px 0 8px;
+}
+
+.ai-assistant-meter-top{
+  display:flex;
+  justify-content:space-between;
+  font-size:9px;
+  font-weight:800;
+  color:#536981;
+  margin-bottom:5px;
+}
+
+.ai-assistant-track{
+  height:8px;
+  border-radius:10px;
+  background:#e8eef4;
+  overflow:hidden;
+}
+
+.ai-assistant-fill{
+  height:100%;
+  width:0;
+  border-radius:10px;
+  background:linear-gradient(
+    90deg,
+    #f0b34e,
+    #2dcc9a
+  );
+  transition:width .35s ease;
+}
+
+.ai-assistant-facts{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  margin-top:9px;
+}
+
+.ai-assistant-fact{
+  background:#f6f9fc;
+  border-radius:7px;
+  padding:7px 8px;
+}
+
+.ai-assistant-fact small{
+  display:block;
+  font-size:7px;
+  color:#8090a3;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.35px;
+}
+
+.ai-assistant-fact b{
+  display:block;
+  font-size:10px;
+  color:#263e57;
+  margin-top:2px;
+}
+
+.ai-assistant-foot{
+  font-size:8px;
+  color:#8291a3;
+  line-height:1.45;
+  margin-top:8px;
+}
+
+.ai-assistant-action{
+  width:100%;
+  margin-top:8px;
+  border:1px solid #cfe0ee;
+  background:#fff;
+  color:#1769e0;
+  font-weight:800;
+  font-size:9px;
+  border-radius:7px;
+  padding:6px 8px;
+  cursor:pointer;
+}
+
+.ai-assistant-action:hover{
+  background:#f2f7fc;
+}
+
+#liveAiPanel .telemetry-grid{
+  width:100%;
+}
+
+#liveAlertsList .live-alert-row{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  padding:7px 0;
+  border-bottom:1px solid #eef2f6;
+  font-size:10px;
+}
+
+#liveAlertsList .live-alert-row:last-child{
+  border-bottom:0;
+}
+
+#liveAlertsList .sev-SUCCESS{
+  color:#168548;
+  font-weight:800;
+}
+
+#liveAlertsList .sev-WARNING{
+  color:#ad6d00;
+  font-weight:800;
+}
+
+#liveAlertsList .sev-INFO{
+  color:#65748b;
+  font-weight:800;
+}
+
+.tracking-error-panel{
+  width:100%;
+  overflow:hidden;
+}
+
+.tracking-error-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding:14px 14px 4px;
+}
+
+.tracking-error-title-wrap h2{
+  margin:0;
+  color:#17304d;
+  font-size:15px;
+  font-weight:800;
+}
+
+.tracking-error-title-wrap p{
+  margin:5px 0 0;
+  color:#718298;
+  font-size:10px;
+  line-height:1.45;
+}
+
+.tracking-error-current{
+  min-width:105px;
+  padding-left:10px;
+  border-left:3px solid #67aef2;
+}
+
+.tracking-error-current span{
+  display:block;
+  color:#65758a;
+  font-size:9px;
+  font-weight:700;
+  line-height:1.2;
+}
+
+.tracking-error-current strong{
+  display:block;
+  color:#172d45;
+  font-size:20px;
+  font-weight:900;
+  line-height:1.25;
+  margin-top:2px;
+}
+
+.tracking-error-chart-wrap{
+  position:relative;
+  width:100%;
+  height:230px;
+  padding:10px 14px 30px 48px;
+  box-sizing:border-box;
+}
+
+#liveErrorChart{
+  position:relative;
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.tracking-y-axis{
+  position:absolute;
+  left:10px;
+  top:10px;
+  bottom:30px;
+  width:32px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  align-items:flex-end;
+  pointer-events:none;
+}
+
+.tracking-y-axis span{
+  color:#718298;
+  font-size:9px;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.tracking-x-axis{
+  position:absolute;
+  left:48px;
+  right:14px;
+  bottom:7px;
+  height:16px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  pointer-events:none;
+}
+
+.tracking-x-axis span{
+  color:#718298;
+  font-size:9px;
+  line-height:1;
+}
+
+.tracking-x-axis .time-label{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:10px;
+}
+
+.tracking-error-note{
+  padding:0 14px 13px;
+  color:#718298;
+  font-size:9px;
+  line-height:1.5;
+}
+
+.tracking-error-note strong{
+  color:#31465d;
+}
+
+
+/* =========================================================
+   LIVE AI RESPONSIVE
+   ========================================================= */
+
+@media(max-width:1100px){
+
+  #liveAiPanel .live-ai-main-layout{
+    grid-template-columns:minmax(0,1.7fr) minmax(290px,1fr);
+    gap:14px;
+  }
+
+  .live-camera-wrap{
+    height:420px;
+  }
+
+}
+
+@media(max-width:850px){
+
+  #liveAiPanel .live-ai-main-layout{
+    grid-template-columns:1fr !important;
+  }
+
+  .live-camera-wrap{
+    height:400px;
+  }
+
+  #liveAiPanel .live-ai-side-column{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+
+  #liveAiPanel .ai-assistant-card{
+    grid-column:1 / -1;
+  }
+
+}
+
+@media(max-width:600px){
+
+  #liveAiPanel .live-ai-main-layout{
+    grid-template-columns:1fr !important;
+  }
+
+  #liveAiPanel .live-ai-side-column{
+    display:flex;
+    flex-direction:column;
+  }
+
+  .live-camera-wrap{
+    height:330px;
+  }
+
+  .ai-assistant-facts{
+    grid-template-columns:1fr 1fr;
+  }
+
+  #liveAiPanel .camera-footer{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+
+  #liveAiPanel .camera-footer .btn{
+    font-size:10px;
+  }
+
+  .tracking-error-header{
+    flex-direction:column;
+  }
+
+  .tracking-error-current{
+    border-left:0;
+    border-top:2px solid #67aef2;
+    padding-left:0;
+    padding-top:6px;
+  }
+
+  .tracking-error-chart-wrap{
+    height:210px;
+  }
+
+}
+
+</style>
+
+
+<!-- =========================================================
+     PAGE HEADER
+     ========================================================= -->
+
+<div class="page-head">
+
+  <div>
+    <b>LIVE TRACKING</b>
+
+    <span>
+      AI virtual camera tracking of a distant FSOC optical terminal.
+    </span>
+  </div>
+
+  <div>
+    <span class="live-badge">
+      ● System Online
+    </span>
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     TRACKING MODE TABS
+     ========================================================= -->
+
+<ul class="nav nav-pills mb-3" id="modeTabs">
+
+  <li class="nav-item">
+
+    <button
+      class="nav-link active"
+      type="button"
+      id="tabSim"
+      onclick="showTrackingMode('sim')">
+
+      Simulated Scenario Camera
+
+    </button>
+
+  </li>
+
+
+  <li class="nav-item">
+
+    <button
+      class="nav-link"
+      type="button"
+      id="tabLive"
+      onclick="showTrackingMode('live')">
+
+      🔴 Live AI Camera
+
+    </button>
+
+  </li>
+
+</ul>
+
+
+<!-- =========================================================
+     NEW SIMULATED SATELLITE TRACKING MODE
+     ========================================================= -->
+
+<div id="simPanel">
+
+  <div class="sim-satellite-layout">
+
+
+    <!-- =====================================================
+         LEFT — LARGE AI CAMERA
+         ===================================================== -->
+
+    <section class="panel sim-ai-camera-panel">
+
+      <div class="sim-camera-head">
+
+        <div class="sim-camera-title">
+
+          <div class="sim-camera-title-icon">
+            📡
+          </div>
+
+          <div>
+
+            <div class="sim-camera-title-text">
+              AI Camera · Multi-Satellite Tracking
+            </div>
+
+            <div class="sim-camera-subtitle">
+              Virtual FSOC optical tracking environment
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="sim-camera-status">
+
+          <div class="sim-camera-online">
+            <span class="dot"></span>
+            AI TRACKING ONLINE
+          </div>
+
+          <div
+            class="sim-camera-time"
+            id="simClock"
+          >
+            00:00:00
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ===================================================
+           CAMERA VIEW
+           =================================================== -->
+
+      <div id="satelliteCamera">
+
+        <div class="space-stars"></div>
+
+        <div class="sim-earth"></div>
+
+
+        <!-- CAMERA FOV -->
+
+        <div class="sim-fov"></div>
+
+
+        <!-- CAMERA HUD -->
+
+        <div class="sim-camera-hud">
+
+          <div class="sim-camera-hud-left">
+
+            <div class="sim-hud-chip">
+              📷 AI CAMERA · LIVE TRACKING
+            </div>
+
+            <div
+              class="sim-hud-chip green"
+              id="simTrackingHud"
+            >
+              ● TRACKING: SAT-7721
+            </div>
+
+          </div>
+
+
+          <div class="sim-hud-right">
+
+            <div class="sim-hud-value">
+              FOV 42° × 24°
+            </div>
+
+            <div
+              class="sim-hud-value"
+              id="simObjectCountHud"
+            >
+              OBJECTS: 6
+            </div>
+
+            <div
+              class="sim-hud-value"
+              id="simConfidenceHud"
+            >
+              AI CONFIDENCE: 97.4%
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- TRACKING LINE -->
+
+        <svg
+          class="sim-track-svg"
+          id="simTrackSvg"
+        >
+
+          <line
+            id="simTrackLine"
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="0"
+          />
+
+        </svg>
+
+
+        <!-- =================================================
+             SATELLITE 1
+             ================================================= -->
+
+        <div
+          class="sim-satellite active"
+          id="simSat0"
+          data-satellite="SAT-7721"
+          onclick="selectSimSatellite('SAT-7721')"
+        >
+
+          <div class="sat-orbit-ring"></div>
+
+          <div class="sat-panel left"></div>
+          <div class="sat-panel right"></div>
+
+          <div class="sat-antenna"></div>
+
+          <div class="sat-core"></div>
+
+          <div class="sat-beacon"></div>
+
+          <div class="sat-label">
+            SAT-7721
+          </div>
+
+        </div>
+
+
+        <!-- =================================================
+             SATELLITE 2
+             ================================================= -->
+
+        <div
+          class="sim-satellite"
+          id="simSat1"
+          data-satellite="SAT-4587"
+          onclick="selectSimSatellite('SAT-4587')"
+        >
+
+          <div class="sat-orbit-ring"></div>
+
+          <div class="sat-panel left"></div>
+          <div class="sat-panel right"></div>
+
+          <div class="sat-antenna"></div>
+
+          <div class="sat-core"></div>
+
+          <div class="sat-beacon"></div>
+
+          <div class="sat-label">
+            SAT-4587
+          </div>
+
+        </div>
+
+
+        <!-- =================================================
+             SATELLITE 3
+             ================================================= -->
+
+        <div
+          class="sim-satellite"
+          id="simSat2"
+          data-satellite="SAT-1023"
+          onclick="selectSimSatellite('SAT-1023')"
+        >
+
+          <div class="sat-orbit-ring"></div>
+
+          <div class="sat-panel left"></div>
+          <div class="sat-panel right"></div>
+
+          <div class="sat-antenna"></div>
+
+          <div class="sat-core"></div>
+
+          <div class="sat-beacon"></div>
+
+          <div class="sat-label">
+            SAT-1023
+          </div>
+
+        </div>
+
+
+        <!-- =================================================
+             SATELLITE 4
+             ================================================= -->
+
+        <div
+          class="sim-satellite"
+          id="simSat3"
+          data-satellite="SAT-3860"
+          onclick="selectSimSatellite('SAT-3860')"
+        >
+
+          <div class="sat-orbit-ring"></div>
+
+          <div class="sat-panel left"></div>
+          <div class="sat-panel right"></div>
+
+          <div class="sat-antenna"></div>
+
+          <div class="sat-core"></div>
+
+          <div class="sat-beacon"></div>
+
+          <div class="sat-label">
+            SAT-3860
+          </div>
+
+        </div>
+
+
+        <!-- =================================================
+             SATELLITE 5
+             ================================================= -->
+
+        <div
+          class="sim-satellite"
+          id="simSat4"
+          data-satellite="SAT-6142"
+          onclick="selectSimSatellite('SAT-6142')"
+        >
+
+          <div class="sat-orbit-ring"></div>
+
+          <div class="sat-panel left"></div>
+          <div class="sat-panel right"></div>
+
+          <div class="sat-antenna"></div>
+
+          <div class="sat-core"></div>
+
+          <div class="sat-beacon"></div>
+
+          <div class="sat-label">
+            SAT-6142
+          </div>
+
+        </div>
+
+
+        <!-- =================================================
+             SATELLITE 6
+             ================================================= -->
+
+        <div
+          class="sim-satellite"
+          id="simSat5"
+          data-satellite="SAT-9055"
+          onclick="selectSimSatellite('SAT-9055')"
+        >
+
+          <div class="sat-orbit-ring"></div>
+
+          <div class="sat-panel left"></div>
+          <div class="sat-panel right"></div>
+
+          <div class="sat-antenna"></div>
+
+          <div class="sat-core"></div>
+
+          <div class="sat-beacon"></div>
+
+          <div class="sat-label">
+            SAT-9055
+          </div>
+
+        </div>
+
+
+        <!-- CAMERA BORESIGHT -->
+
+        <div class="sim-boresight">
+
+          <div class="sim-boresight-ring"></div>
+
+        </div>
+
+        <div class="sim-boresight-label">
+          CAMERA BORESIGHT
+        </div>
+
+
+        <!-- AI RETICLE -->
+
+        <div
+          class="sim-ai-reticle"
+          id="simAiReticle"
+        >
+
+          <div class="sim-reticle-corner"></div>
+
+          <div
+            class="sim-reticle-label"
+            id="simReticleLabel"
+          >
+            AI LOCK · SAT-7721
+          </div>
+
+        </div>
+
+
+        <!-- BOTTOM HUD -->
+
+        <div class="sim-bottom-hud">
+
+          <div class="sim-camera-info">
+
+            <div class="sim-info-chip">
+              TARGET:
+              <b id="simTargetHud">
+                SAT-7721
+              </b>
+            </div>
+
+            <div class="sim-info-chip">
+              STATUS:
+              <b id="simStatusHud">
+                TRACKING
+              </b>
+            </div>
+
+            <div class="sim-info-chip">
+              ERROR:
+              <b id="simErrorHud">
+                0.42°
+              </b>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ===================================================
+           CAMERA CONTROLS
+           =================================================== -->
+
+      <div class="sim-control-bar">
+
+        <button
+          class="btn btn-success"
+          type="button"
+          onclick="startSimSatelliteTracking()"
+        >
+          ▶ Start AI Tracking
+        </button>
+
+
+        <button
+          class="btn btn-primary"
+          type="button"
+          onclick="centerSimTarget()"
+        >
+          ◎ Center Selected
+        </button>
+
+
+        <button
+          class="btn btn-outline-primary"
+          type="button"
+          onclick="reacquireSimTarget()"
+        >
+          ↻ Reacquire
+        </button>
+
+
+        <button
+          class="btn btn-outline-danger"
+          type="button"
+          onclick="stopSimSatelliteTracking()"
+        >
+          ■ Stop
+        </button>
+
+      </div>
+
+
+      <!-- ===================================================
+           MINI TELEMETRY
+           =================================================== -->
+
+      <div class="sim-new-telemetry">
+
+        <div class="panel sim-mini-card">
+
+          <small>
+            Selected Satellite
+          </small>
+
+          <b id="simTelemetryTarget">
+            SAT-7721
+          </b>
+
+        </div>
+
+
+        <div class="panel sim-mini-card">
+
+          <small>
+            Tracking State
+          </small>
+
+          <b id="simTelemetryState">
+            LOCKED
+          </b>
+
+        </div>
+
+
+        <div class="panel sim-mini-card">
+
+          <small>
+            Velocity
+          </small>
+
+          <b id="simTelemetryVelocity">
+            7.42 km/s
+          </b>
+
+        </div>
+
+
+        <div class="panel sim-mini-card">
+
+          <small>
+            AI Confidence
+          </small>
+
+          <b id="simTelemetryConfidence">
+            97.4%
+          </b>
+
+        </div>
+
+      </div>
+
+
+      <!-- ===================================================
+           SIMULATED CAMERA — LIVE TELEMETRY
+           =================================================== -->
+
+      <div class="panel sim-live-telemetry-panel">
+
+        <div class="panel-head">
+
+          <h2>
+            Live Telemetry
+          </h2>
+
+          <span
+            class="pill gray"
+            id="simLivePhasePill"
+          >
+            TRACKING
+          </span>
+
+        </div>
+
+
+        <div class="telemetry-grid">
+
+          <div>
+            <small>H ERROR</small>
+            <b id="simLiveHErr">+0.00°</b>
+          </div>
+
+          <div>
+            <small>V ERROR</small>
+            <b id="simLiveVErr">+0.00°</b>
+          </div>
+
+          <div>
+            <small>TOTAL ANGULAR ERROR</small>
+            <b id="simLiveTotalErr">0.00°</b>
+          </div>
+
+          <div>
+            <small>AI CONFIDENCE</small>
+            <b id="simLiveConf">0.0%</b>
+          </div>
+
+          <div>
+            <small>TARGET</small>
+            <b id="simLiveTargetLabel">—</b>
+          </div>
+
+          <div>
+            <small>TRACK ID</small>
+            <b id="simLiveTrackId">—</b>
+          </div>
+
+          <div>
+            <small>X / Y</small>
+            <b id="simLiveXY">—</b>
+          </div>
+
+          <div>
+            <small>OFFSET</small>
+            <b id="simLiveOffset">—</b>
+          </div>
+
+          <div>
+            <small>VELOCITY</small>
+            <b id="simLiveVelocity">—</b>
+          </div>
+
+          <div>
+            <small>ANGULAR RATE</small>
+            <b id="simLiveAngularRate">—</b>
+          </div>
+
+          <div>
+            <small>FPS</small>
+            <b id="simLiveFPS">—</b>
+          </div>
+
+          <div>
+            <small>DETECTOR</small>
+            <b id="simLiveSource">SIMULATED AI</b>
+          </div>
+
+        </div>
+
+
+        <div
+          style="
+            margin:10px 0 0;
+            padding:8px 10px;
+            border-radius:7px;
+            background:#f5f8fb;
+            font-size:9px;
+            color:#60758d;
+            line-height:1.5
+          "
+        >
+          Selected satellite centroid → boresight offset → angular error → velocity estimation → alignment phase → fine lock
+        </div>
+
+      </div>
+
+
+      <!-- ===================================================
+           SIMULATED CAMERA — TRACKING ERROR VS TIME
+           =================================================== -->
+
+      <div class="panel sim-tracking-error-panel">
+
+        <div class="tracking-error-header">
+
+          <div class="tracking-error-title-wrap">
+
+            <h2>
+              Tracking Error vs Time
+            </h2>
+
+            <p>
+              Live tracking error of the currently selected satellite relative to the camera center.
+            </p>
+
+          </div>
+
+
+          <div class="tracking-error-current">
+
+            <span>
+              Tracking error
+            </span>
+
+            <strong id="simLiveCurrentError">
+              0 px
+            </strong>
+
+          </div>
+
+        </div>
+
+
+        <div class="sim-tracking-error-chart-wrap">
+
+          <canvas
+            id="simTrackingErrorChart"
+          ></canvas>
+
+
+          <div class="sim-tracking-y-axis">
+
+            <span id="simTrackingYMax">100px</span>
+
+            <span>0px</span>
+
+          </div>
+
+
+          <div class="sim-tracking-x-axis">
+
+            <span>0</span>
+
+            <span class="time-label">Time (s)</span>
+
+            <span id="simTrackingTimeMax">10</span>
+
+          </div>
+
+        </div>
+
+
+        <div class="sim-tracking-error-note">
+
+          <strong>Tracking Error:</strong>
+          distance between the selected satellite centroid and the camera boresight.
+          Each satellite keeps its own live telemetry and error history.
+
+        </div>
+
+      </div>
+
+
+    </section>
+
+
+    <!-- =====================================================
+         RIGHT — SEARCH + SATELLITE INFORMATION
+         ===================================================== -->
+
+    <div class="sim-side-column">
+
+
+      <!-- ===================================================
+           SATELLITE SEARCH
+           =================================================== -->
+
+      <section class="panel sim-search-panel">
+
+        <div class="sim-panel-head">
+
+          <h2>
+            🔎 Satellite Search
+          </h2>
+
+          <span>
+            MULTI-OBJECT
+          </span>
+
+        </div>
+
+
+        <div class="sim-search-body">
+
+          <div class="sim-search-box">
+
+            <input
+              type="text"
+              id="simSatelliteSearch"
+              class="sim-search-input"
+              placeholder="Search satellite ID..."
+              autocomplete="off"
+              onkeydown="
+                if(event.key === 'Enter'){
+                  searchSimSatellite();
+                }
+              "
+            >
+
+            <button
+              class="sim-search-button"
+              type="button"
+              onclick="searchSimSatellite()"
+            >
+              Search
+            </button>
+
+          </div>
+
+
+          <div
+            class="sim-search-result"
+            id="simSearchResult"
+          >
+            Type a satellite ID to switch tracking target.
+          </div>
+
+        </div>
+
+
+        <!-- SATELLITE LIST -->
+
+        <div
+          class="sim-satellite-list"
+          id="simSatelliteList"
+        >
+
+
+          <div
+            class="sim-sat-list-item active"
+            data-list-satellite="SAT-7721"
+            onclick="selectSimSatellite('SAT-7721')"
+          >
+
+            <span class="sim-sat-list-dot"></span>
+
+            <div class="sim-sat-list-text">
+
+              <div class="sim-sat-list-name">
+                SAT-7721
+              </div>
+
+              <div class="sim-sat-list-type">
+                Communication Satellite
+              </div>
+
+            </div>
+
+            <span
+              class="sim-sat-list-state"
+              data-state-for="SAT-7721"
+            >
+              TRACKING
+            </span>
+
+          </div>
+
+
+          <div
+            class="sim-sat-list-item"
+            data-list-satellite="SAT-4587"
+            onclick="selectSimSatellite('SAT-4587')"
+          >
+
+            <span class="sim-sat-list-dot"></span>
+
+            <div class="sim-sat-list-text">
+
+              <div class="sim-sat-list-name">
+                SAT-4587
+              </div>
+
+              <div class="sim-sat-list-type">
+                Earth Observation
+              </div>
+
+            </div>
+
+            <span
+              class="sim-sat-list-state"
+              data-state-for="SAT-4587"
+            >
+              AVAILABLE
+            </span>
+
+          </div>
+
+
+          <div
+            class="sim-sat-list-item"
+            data-list-satellite="SAT-1023"
+            onclick="selectSimSatellite('SAT-1023')"
+          >
+
+            <span class="sim-sat-list-dot"></span>
+
+            <div class="sim-sat-list-text">
+
+              <div class="sim-sat-list-name">
+                SAT-1023
+              </div>
+
+              <div class="sim-sat-list-type">
+                Weather Satellite
+              </div>
+
+            </div>
+
+            <span
+              class="sim-sat-list-state"
+              data-state-for="SAT-1023"
+            >
+              AVAILABLE
+            </span>
+
+          </div>
+
+
+          <div
+            class="sim-sat-list-item"
+            data-list-satellite="SAT-3860"
+            onclick="selectSimSatellite('SAT-3860')"
+          >
+
+            <span class="sim-sat-list-dot"></span>
+
+            <div class="sim-sat-list-text">
+
+              <div class="sim-sat-list-name">
+                SAT-3860
+              </div>
+
+              <div class="sim-sat-list-type">
+                Research Satellite
+              </div>
+
+            </div>
+
+            <span
+              class="sim-sat-list-state"
+              data-state-for="SAT-3860"
+            >
+              AVAILABLE
+            </span>
+
+          </div>
+
+
+          <div
+            class="sim-sat-list-item"
+            data-list-satellite="SAT-6142"
+            onclick="selectSimSatellite('SAT-6142')"
+          >
+
+            <span class="sim-sat-list-dot"></span>
+
+            <div class="sim-sat-list-text">
+
+              <div class="sim-sat-list-name">
+                SAT-6142
+              </div>
+
+              <div class="sim-sat-list-type">
+                Navigation Satellite
+              </div>
+
+            </div>
+
+            <span
+              class="sim-sat-list-state"
+              data-state-for="SAT-6142"
+            >
+              AVAILABLE
+            </span>
+
+          </div>
+
+
+          <div
+            class="sim-sat-list-item"
+            data-list-satellite="SAT-9055"
+            onclick="selectSimSatellite('SAT-9055')"
+          >
+
+            <span class="sim-sat-list-dot"></span>
+
+            <div class="sim-sat-list-text">
+
+              <div class="sim-sat-list-name">
+                SAT-9055
+              </div>
+
+              <div class="sim-sat-list-type">
+                Defense Observation
+              </div>
+
+            </div>
+
+            <span
+              class="sim-sat-list-state"
+              data-state-for="SAT-9055"
+            >
+              AVAILABLE
+            </span>
+
+          </div>
+
+
+        </div>
+
+      </section>
+
+
+      <!-- ===================================================
+           SELECTED SATELLITE INFORMATION
+           =================================================== -->
+
+      <section class="panel sim-selected-panel">
+
+        <div class="sim-panel-head">
+
+          <h2>
+            ◉ Selected Satellite
+          </h2>
+
+          <span
+            id="simSelectedStatus"
+          >
+            TRACKING
+          </span>
+
+        </div>
+
+
+        <div class="sim-selected-body">
+
+          <div class="sim-selected-card">
+
+            <div class="sim-selected-preview"></div>
+
+            <div>
+
+              <div
+                class="sim-selected-name"
+                id="simSelectedName"
+              >
+                SAT-7721
+              </div>
+
+              <div
+                class="sim-selected-status"
+                id="simSelectedType"
+              >
+                COMMUNICATION SATELLITE
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="sim-selected-grid">
+
+            <div class="sim-selected-fact">
+
+              <small>
+                Velocity
+              </small>
+
+              <b id="simSelectedVelocity">
+                7.42 km/s
+              </b>
+
+            </div>
+
+
+            <div class="sim-selected-fact">
+
+              <small>
+                Distance
+              </small>
+
+              <b id="simSelectedDistance">
+                1420 km
+              </b>
+
+            </div>
+
+
+            <div class="sim-selected-fact">
+
+              <small>
+                Tracking
+              </small>
+
+              <b id="simSelectedTracking">
+                AUTO AI
+              </b>
+
+            </div>
+
+
+            <div class="sim-selected-fact">
+
+              <small>
+                Confidence
+              </small>
+
+              <b id="simSelectedConfidence">
+                97.4%
+              </b>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     LIVE AI MODE
+     IMPORTANT:
+     THIS SECTION IS KEPT AS EXISTING
+     ========================================================= -->
+
+<div
+  id="liveAiPanel"
+  style="display:none"
+>
+
+  <div class="live-ai-main-layout">
+
+
+    <!-- =====================================================
+         LEFT COLUMN — LIVE AI CAMERA
+         ===================================================== -->
+
+    <div class="live-ai-camera-column">
+
+      <div
+        class="panel camera-panel"
+        style="padding:0;overflow:hidden"
+      >
+
+        <div
+          class="panel-head"
+          style="padding:14px 14px 0"
+        >
+
+          <h2>
+            Live AI Camera Feed
+          </h2>
+
+          <div>
+
+            <span
+              class="badge text-bg-secondary"
+              id="liveCameraModeBadge"
+            >
+              CAMERA: —
+            </span>
+
+            <span
+              class="badge text-bg-secondary"
+              id="liveDetectorBadge"
+            >
+              DETECTOR: —
+            </span>
+
+            <span
+              class="badge text-bg-secondary"
+              id="liveRunBadge"
+            >
+              STOPPED
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="live-camera-wrap"
+          id="liveCameraWrap"
+        >
+
+          <img
+            id="liveFeedImg"
+            src=""
+            alt="Live camera feed"
+          >
+
+
+          <canvas
+            id="liveOverlay"
+          ></canvas>
+
+
+          <div
+            class="live-empty-msg"
+            id="liveEmptyMsg"
+          >
+            Click "Start Live AI Tracking" to open the camera / synthetic test-beacon feed and begin OpenCV + YOLO detection.
+          </div>
+
+        </div>
+
+
+        <div
+          class="camera-footer"
+          style="padding:12px 14px"
+        >
+
+          <button
+            class="btn btn-success"
+            onclick="startLiveAI()"
+          >
+            ▶ Start Live AI Tracking
+          </button>
+
+
+          <button
+            class="btn btn-outline-danger"
+            onclick="stopLiveAI()"
+          >
+            ■ Stop
+          </button>
+
+
+          <a
+            class="btn btn-outline-secondary"
+            href="/export-live.csv"
+          >
+            ⇩ Export Live Detections (CSV)
+          </a>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         RIGHT COLUMN
+         ===================================================== -->
+
+    <div class="live-ai-side-column">
+
+
+      <!-- =================================================
+           AI ASSISTANT
+           ================================================= -->
+
+      <div class="panel ai-assistant-card">
+
+        <div class="panel-head ai-assistant-head">
+
+          <div class="ai-assistant-title">
+
+            <span class="ai-assistant-icon">
+              ✦
+            </span>
+
+            <span>
+              AI Assistant
+            </span>
+
+          </div>
+
+
+          <span
+            class="ai-assistant-live"
+            id="assistantStatus"
+          >
+            STANDBY
+          </span>
+
+        </div>
+
+
+        <div class="ai-assistant-reco">
+
+          <div class="kicker">
+            Recommended Adjustment
+          </div>
+
+
+          <div
+            class="main"
+            id="assistantRecommendation"
+          >
+            Start live tracking to receive a pointing recommendation.
+          </div>
+
+
+          <div
+            class="reason"
+            id="assistantReason"
+          >
+            The assistant will use the live target centroid, angular error, velocity and lock phase.
+          </div>
+
+        </div>
+
+
+        <div class="ai-assistant-meter">
+
+          <div class="ai-assistant-meter-top">
+
+            <span>
+              Target Alignment
+            </span>
+
+            <b id="assistantAlignment">
+              0%
+            </b>
+
+          </div>
+
+
+          <div class="ai-assistant-track">
+
+            <div
+              class="ai-assistant-fill"
+              id="assistantFill"
+            ></div>
+
+          </div>
+
+        </div>
+
+
+        <div class="ai-assistant-facts">
+
+          <div class="ai-assistant-fact">
+
+            <small>
+              Tracking State
+            </small>
+
+            <b id="assistantState">
+              STANDBY
+            </b>
+
+          </div>
+
+
+          <div class="ai-assistant-fact">
+
+            <small>
+              Target
+            </small>
+
+            <b id="assistantTarget">
+              —
+            </b>
+
+          </div>
+
+
+          <div class="ai-assistant-fact">
+
+            <small>
+              Angular Error
+            </small>
+
+            <b id="assistantError">
+              0.00°
+            </b>
+
+          </div>
+
+
+          <div class="ai-assistant-fact">
+
+            <small>
+              Motion
+            </small>
+
+            <b id="assistantMotion">
+              0.0 px/s
+            </b>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="ai-assistant-foot"
+          id="assistantFoot"
+        >
+          No live telemetry yet.
+        </div>
+
+
+        <button
+          class="ai-assistant-action"
+          type="button"
+          onclick="assistantCenterGuide()"
+        >
+          ◎ Center / Recheck Target
+        </button>
+
+      </div>
+
+
+      <!-- =================================================
+           LIVE TELEMETRY
+           ================================================= -->
+
+      <div class="panel">
+
+        <div class="panel-head">
+
+          <h2>
+            Live Telemetry
+          </h2>
+
+          <span
+            class="pill gray"
+            id="livePhasePill"
+          >
+            IDLE
+          </span>
+
+        </div>
+
+
+        <div class="telemetry-grid">
+
+          <div>
+            <small>H ERROR</small>
+            <b id="liveHErr">
+              +0.00°
+            </b>
+          </div>
+
+          <div>
+            <small>V ERROR</small>
+            <b id="liveVErr">
+              +0.00°
+            </b>
+          </div>
+
+          <div>
+            <small>TOTAL ANGULAR ERROR</small>
+            <b id="liveTotalErr">
+              0.00°
+            </b>
+          </div>
+
+          <div>
+            <small>AI CONFIDENCE</small>
+            <b id="liveConf">
+              0.0%
+            </b>
+          </div>
+
+          <div>
+            <small>TARGET</small>
+            <b id="liveTargetLabel">
+              —
+            </b>
+          </div>
+
+          <div>
+            <small>TRACK ID</small>
+            <b id="liveTrackId">
+              —
+            </b>
+          </div>
+
+          <div>
+            <small>X / Y</small>
+            <b id="liveXY">
+              —
+            </b>
+          </div>
+
+          <div>
+            <small>OFFSET</small>
+            <b id="liveOffset">
+              —
+            </b>
+          </div>
+
+          <div>
+            <small>VELOCITY</small>
+            <b id="liveVelocity">
+              —
+            </b>
+          </div>
+
+          <div>
+            <small>ANGULAR RATE</small>
+            <b id="liveAngularRate">
+              —
+            </b>
+          </div>
+
+          <div>
+            <small>FPS</small>
+            <b id="liveFPS">
+              —
+            </b>
+          </div>
+
+          <div>
+            <small>DETECTOR</small>
+            <b id="liveSource">
+              —
+            </b>
+          </div>
+
+        </div>
+
+
+        <div
+          style="
+            margin:10px 0 0;
+            padding:8px 10px;
+            border-radius:7px;
+            background:#f5f8fb;
+            font-size:9px;
+            color:#60758d;
+            line-height:1.5
+          "
+        >
+          Target centroid → boresight offset → angular error → velocity estimation → alignment phase → fine lock
+        </div>
+
+      </div>
+
+
+      <!-- =================================================
+           TRACKING ERROR VS TIME
+           ================================================= -->
+
+      <div class="panel tracking-error-panel">
+
+        <div class="tracking-error-header">
+
+          <div class="tracking-error-title-wrap">
+
+            <h2>
+              Tracking Error vs Time
+            </h2>
+
+            <p>
+              Shows how far the target is from the camera center / target reticle.
+            </p>
+
+          </div>
+
+
+          <div class="tracking-error-current">
+
+            <span>
+              Tracking error
+            </span>
+
+            <strong id="liveCurrentError">
+              0 px
+            </strong>
+
+          </div>
+
+        </div>
+
+
+        <div class="tracking-error-chart-wrap">
+
+          <canvas
+            id="liveErrorChart"
+          ></canvas>
+
+
+          <div class="tracking-y-axis">
+
+            <span id="trackingYMax">
+              100px
+            </span>
+
+            <span>
+              0px
+            </span>
+
+          </div>
+
+
+          <div class="tracking-x-axis">
+
+            <span>
+              0
+            </span>
+
+            <span class="time-label">
+              Time (s)
+            </span>
+
+            <span id="trackingTimeMax">
+              10
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="tracking-error-note">
+
+          <strong>Tracking Error:</strong>
+          distance between the detected target centroid and the camera center.
+          When the AI locks onto the target, the error should approach
+          <strong>0 px</strong>.
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
+
+<script src="{{ url_for('static', filename='js/live-ai.js') }}"></script>
+
+<script>
+initLiveTracking();
+</script>
+
+
+<!-- =========================================================
+     SIMULATED SATELLITE TRACKING ENGINE
+     ONLY FOR NEW SIMULATION MODE
+     ========================================================= -->
+
+<script>
+
+(function(){
+
+  "use strict";
+
+
+  /* =======================================================
+     SATELLITE DATA
+     ======================================================= */
+
+  const satellites = {
+
+    "SAT-7721":{
+      id:"SAT-7721",
+      type:"Communication Satellite",
+      velocity:"7.42 km/s",
+      distance:"1420 km",
+      confidence:97.4,
+      color:"#43f3aa",
+      x:51,
+      y:28,
+      baseX:51,
+      baseY:28,
+      speedX:0.00023,
+      speedY:0.00015,
+      phase:0.2
+    },
+
+    "SAT-4587":{
+      id:"SAT-4587",
+      type:"Earth Observation",
+      velocity:"7.81 km/s",
+      distance:"1685 km",
+      confidence:95.8,
+      color:"#35c8ff",
+      x:75,
+      y:25,
+      baseX:75,
+      baseY:25,
+      speedX:0.00031,
+      speedY:0.00018,
+      phase:1.8
+    },
+
+    "SAT-1023":{
+      id:"SAT-1023",
+      type:"Weather Satellite",
+      velocity:"7.28 km/s",
+      distance:"1190 km",
+      confidence:96.9,
+      color:"#35c8ff",
+      x:17,
+      y:25,
+      baseX:17,
+      baseY:25,
+      speedX:0.00027,
+      speedY:0.00022,
+      phase:3.2
+    },
+
+    "SAT-3860":{
+      id:"SAT-3860",
+      type:"Research Satellite",
+      velocity:"7.63 km/s",
+      distance:"1830 km",
+      confidence:94.7,
+      color:"#35c8ff",
+      x:86,
+      y:43,
+      baseX:86,
+      baseY:43,
+      speedX:0.00018,
+      speedY:0.00027,
+      phase:4.1
+    },
+
+    "SAT-6142":{
+      id:"SAT-6142",
+      type:"Navigation Satellite",
+      velocity:"7.55 km/s",
+      distance:"1510 km",
+      confidence:96.1,
+      color:"#35c8ff",
+      x:28,
+      y:47,
+      baseX:28,
+      baseY:47,
+      speedX:0.00021,
+      speedY:0.00031,
+      phase:5.4
+    },
+
+    "SAT-9055":{
+      id:"SAT-9055",
+      type:"Defense Observation",
+      velocity:"7.93 km/s",
+      distance:"1960 km",
+      confidence:93.9,
+      color:"#35c8ff",
+      x:65,
+      y:57,
+      baseX:65,
+      baseY:57,
+      speedX:0.00029,
+      speedY:0.00020,
+      phase:6.1
+    }
+
+  };
+
+
+  /* =======================================================
+     STATE
+     ======================================================= */
+
+  let selectedSatellite =
+    "SAT-7721";
+
+  let simRunning =
+    true;
+
+  let simCenterLock =
+    false;
+
+  let animationFrame =
+    null;
+
+  let startTime =
+    performance.now();
+
+
+  /* =======================================================
+     SIMULATED CAMERA TELEMETRY + ERROR HISTORY
+     ======================================================= */
+
+  const simTelemetryHistory = {};
+
+  let simLastTelemetrySample = performance.now();
+
+  let simFrameCount = 0;
+
+  let simFpsValue = 0;
+
+  let simReportId = null;
+  let simLastReportSample = 0;
+
+  let simLastFpsTime = performance.now();
+
+
+  function getSimHistory(id){
+
+    if(!simTelemetryHistory[id]){
+
+      simTelemetryHistory[id] = [];
+
+    }
+
+    return simTelemetryHistory[id];
+
+  }
+
+
+  function resetSimErrorHistory(id){
+
+    simTelemetryHistory[id] = [];
+
+    drawSimTrackingErrorChart();
+
+  }
+
+
+  function updateSimTelemetryAndGraph(sat, angularError, pixelError, confidence, state){
+
+    const now = performance.now();
+
+    const dx = sat.x - 50;
+
+    const dy = sat.y - 50;
+
+    const hError = dx * 0.035;
+
+    const vError = dy * 0.035;
+
+    const speedNumber = parseFloat(sat.velocity) || 0;
+
+    const angularRate = Math.sqrt(
+      Math.pow(sat.speedX,2) +
+      Math.pow(sat.speedY,2)
+    ) * 0.035 * 1000;
+
+    simFrameCount++;
+
+    if(now - simLastFpsTime >= 1000){
+
+      simFpsValue =
+        Math.round(
+          simFrameCount * 1000 / (now - simLastFpsTime)
+        );
+
+      simFrameCount = 0;
+
+      simLastFpsTime = now;
+
+    }
+
+
+    const phase =
+      state === "FINE LOCK"
+        ? "FINE LOCK"
+        : state === "FINE ALIGN"
+          ? "FINE ALIGN"
+          : state === "COARSE ALIGN"
+            ? "COARSE ALIGN"
+            : "TRACKING";
+
+
+    const values = {
+
+      hError: hError,
+
+      vError: vError,
+
+      angularError: angularError,
+
+      pixelError: pixelError,
+
+      confidence: confidence,
+
+      phase: phase,
+
+      x: sat.x,
+
+      y: sat.y,
+
+      velocity: speedNumber,
+
+      angularRate: angularRate
+
+    };
+
+
+    const setText = function(id,value){
+
+      const el = document.getElementById(id);
+
+      if(el){
+
+        el.textContent = value;
+
+      }
+
+    };
+
+
+    setText(
+      "simLiveHErr",
+      (hError >= 0 ? "+" : "") +
+      hError.toFixed(2) +
+      "°"
+    );
+
+    setText(
+      "simLiveVErr",
+      (vError >= 0 ? "+" : "") +
+      vError.toFixed(2) +
+      "°"
+    );
+
+    setText(
+      "simLiveTotalErr",
+      angularError.toFixed(2) + "°"
+    );
+
+    setText(
+      "simLiveConf",
+      confidence.toFixed(1) + "%"
+    );
+
+    setText(
+      "simLiveTargetLabel",
+      sat.id
+    );
+
+    setText(
+      "simLiveTrackId",
+      "SIM-" + sat.id.replace("SAT-","")
+    );
+
+    setText(
+      "simLiveXY",
+      sat.x.toFixed(1) + "% / " +
+      sat.y.toFixed(1) + "%"
+    );
+
+    setText(
+      "simLiveOffset",
+      pixelError.toFixed(1) + " px"
+    );
+
+    setText(
+      "simLiveVelocity",
+      sat.velocity
+    );
+
+    setText(
+      "simLiveAngularRate",
+      angularRate.toFixed(3) + "°/s"
+    );
+
+    setText(
+      "simLiveFPS",
+      simFpsValue > 0 ? simFpsValue + " FPS" : "—"
+    );
+
+    setText(
+      "simLiveSource",
+      "SIMULATED AI"
+    );
+
+    setText(
+      "simLivePhasePill",
+      phase
+    );
+
+
+    if(now - simLastTelemetrySample >= 100){
+
+      simLastTelemetrySample = now;
+
+      const history = getSimHistory(sat.id);
+
+      history.push({
+
+        t: (now - startTime) / 1000,
+
+        value: pixelError
+
+      });
+
+      if(history.length > 100){
+
+        history.shift();
+
+      }
+
+      drawSimTrackingErrorChart();
+
+    }
+
+    /* Persist a lightweight telemetry sample for the Reports →
+       Simulated Camera section.  This is separate from Scenario reports. */
+    if(simReportId && now - simLastReportSample >= 250){
+      simLastReportSample = now;
+      fetch('/api/simulated-camera/sample',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          report_id:simReportId, target_id:sat.id, x:sat.x, y:sat.y,
+          h_error:hError, v_error:vError, total_error:angularError,
+          pixel_error:pixelError, confidence:confidence, velocity:speedNumber,
+          angular_rate:angularRate, phase:phase
+        })
+      }).catch(()=>{});
+    }
+
+  }
+
+
+  function drawSimTrackingErrorChart(){
+
+    const canvasEl =
+      document.getElementById(
+        "simTrackingErrorChart"
+      );
+
+    if(!canvasEl){
+
+      return;
+
+    }
+
+
+    const rect =
+      canvasEl.getBoundingClientRect();
+
+    const dpr =
+      window.devicePixelRatio || 1;
+
+    const width =
+      Math.max(1, rect.width);
+
+    const height =
+      Math.max(1, rect.height);
+
+
+    canvasEl.width =
+      Math.round(width * dpr);
+
+    canvasEl.height =
+      Math.round(height * dpr);
+
+
+    const context =
+      canvasEl.getContext("2d");
+
+    context.setTransform(
+      dpr,
+      0,
+      0,
+      dpr,
+      0,
+      0
+    );
+
+
+    context.clearRect(
+      0,
+      0,
+      width,
+      height
+    );
+
+
+    const history =
+      getSimHistory(selectedSatellite);
+
+
+    const maxValue =
+      Math.max(
+        20,
+        ...history.map(
+          p => p.value
+        )
+      );
+
+
+    const chartMax =
+      Math.ceil(maxValue / 10) * 10;
+
+
+    const yMax =
+      document.getElementById(
+        "simTrackingYMax"
+      );
+
+    if(yMax){
+
+      yMax.textContent =
+        chartMax.toFixed(0) + "px";
+
+    }
+
+
+    const timeMax =
+      document.getElementById(
+        "simTrackingTimeMax"
+      );
+
+    if(timeMax){
+
+      const latest =
+        history.length
+          ? history[history.length - 1].t
+          : 0;
+
+      timeMax.textContent =
+        Math.max(
+          10,
+          Math.ceil(latest)
+        );
+
+    }
+
+
+    context.strokeStyle =
+      "#e5edf4";
+
+    context.lineWidth = 1;
+
+
+    for(let i=0;i<=4;i++){
+
+      const y =
+        8 +
+        (height - 18) *
+        i / 4;
+
+      context.beginPath();
+
+      context.moveTo(
+        0,
+        y
+      );
+
+      context.lineTo(
+        width,
+        y
+      );
+
+      context.stroke();
+
+    }
+
+
+    if(history.length < 2){
+
+      return;
+
+    }
+
+
+    const t0 =
+      history[0].t;
+
+    const t1 =
+      history[history.length - 1].t;
+
+    const timeSpan =
+      Math.max(
+        10,
+        t1 - t0
+      );
+
+
+    context.strokeStyle =
+      "#1769e0";
+
+    context.lineWidth = 2;
+
+    context.beginPath();
+
+
+    history.forEach(function(point,index){
+
+      const x =
+        index === 0
+          ? 0
+          : width *
+            (point.t - t0) /
+            timeSpan;
+
+      const y =
+        height -
+        10 -
+        (point.value / chartMax) *
+        (height - 18);
+
+
+      if(index === 0){
+
+        context.moveTo(
+          x,
+          y
+        );
+
+      }
+      else{
+
+        context.lineTo(
+          x,
+          y
+        );
+
+      }
+
+    });
+
+
+    context.stroke();
+
+  }
+
+
+  /* =======================================================
+     DOM
+     ======================================================= */
+
+  const camera =
+    document.getElementById(
+      "satelliteCamera"
+    );
+
+  const reticle =
+    document.getElementById(
+      "simAiReticle"
+    );
+
+  const trackLine =
+    document.getElementById(
+      "simTrackLine"
+    );
+
+
+  if(!camera){
+    return;
+  }
+
+
+  /* =======================================================
+     UTILITY
+     ======================================================= */
+
+  function getSatelliteElement(id){
+
+    const data =
+      Object.values(satellites)
+        .findIndex(
+          s => s.id === id
+        );
+
+    if(data < 0){
+      return null;
+    }
+
+    return document.getElementById(
+      "simSat" + data
+    );
+
+  }
+
+
+  function clamp(value,min,max){
+
+    return Math.max(
+      min,
+      Math.min(
+        max,
+        value
+      )
+    );
+
+  }
+
+
+  /* =======================================================
+     SELECT SATELLITE
+     ======================================================= */
+
+  window.selectSimSatellite =
+  function(id){
+
+    if(!satellites[id]){
+      return;
+    }
+
+
+    selectedSatellite =
+      id;
+
+
+    simCenterLock =
+      false;
+
+
+    resetSimErrorHistory(id);
+
+
+    Object.keys(satellites)
+      .forEach(function(satId){
+
+        const el =
+          getSatelliteElement(
+            satId
+          );
+
+        const list =
+          document.querySelector(
+            '[data-list-satellite="' +
+            satId +
+            '"]'
+          );
+
+        if(el){
+
+          el.classList.toggle(
+            "active",
+            satId === id
+          );
+
+          el.classList.toggle(
+            "dimmed",
+            satId !== id
+          );
+
+        }
+
+        if(list){
+
+          list.classList.toggle(
+            "active",
+            satId === id
+          );
+
+          const state =
+            list.querySelector(
+              '[data-state-for="' +
+              satId +
+              '"]'
+            );
+
+          if(state){
+
+            state.textContent =
+              satId === id
+              ? "TRACKING"
+              : "AVAILABLE";
+
+          }
+
+        }
+
+      });
+
+
+    updateSelectedSatelliteUI();
+
+
+    const result =
+      document.getElementById(
+        "simSearchResult"
+      );
+
+    if(result){
+
+      result.textContent =
+        "AI camera switched tracking to " +
+        id +
+        ".";
+
+      result.style.color =
+        "#168548";
+
+    }
+
+  };
+
+
+  /* =======================================================
+     SEARCH SATELLITE
+     ======================================================= */
+
+  window.searchSimSatellite =
+  function(){
+
+    const input =
+      document.getElementById(
+        "simSatelliteSearch"
+      );
+
+    if(!input){
+      return;
+    }
+
+
+    const query =
+      input.value
+        .trim()
+        .toUpperCase();
+
+
+    if(!query){
+
+      const result =
+        document.getElementById(
+          "simSearchResult"
+        );
+
+      if(result){
+
+        result.textContent =
+          "Enter a satellite ID.";
+
+        result.style.color =
+          "#ad6d00";
+
+      }
+
+      return;
+
+    }
+
+
+    const found =
+      Object.values(satellites)
+        .find(function(s){
+
+          return (
+            s.id
+              .toUpperCase()
+              .includes(query)
+          );
+
+        });
+
+
+    const result =
+      document.getElementById(
+        "simSearchResult"
+      );
+
+
+    if(found){
+
+      selectSimSatellite(
+        found.id
+      );
+
+
+      input.value =
+        found.id;
+
+
+      if(result){
+
+        result.textContent =
+          "Satellite found — AI camera is now tracking " +
+          found.id +
+          ".";
+
+        result.style.color =
+          "#168548";
+
+      }
+
+    }
+    else{
+
+      if(result){
+
+        result.textContent =
+          "No satellite found for \"" +
+          query +
+          "\".";
+
+        result.style.color =
+          "#c04444";
+
+      }
+
+    }
+
+  };
+
+
+  /* =======================================================
+     UPDATE SELECTED SATELLITE UI
+     ======================================================= */
+
+  function updateSelectedSatelliteUI(){
+
+    const sat =
+      satellites[
+        selectedSatellite
+      ];
+
+
+    if(!sat){
+      return;
+    }
+
+
+    const elements = {
+
+      targetHud:
+        document.getElementById(
+          "simTargetHud"
+        ),
+
+      trackingHud:
+        document.getElementById(
+          "simTrackingHud"
+        ),
+
+      telemetryTarget:
+        document.getElementById(
+          "simTelemetryTarget"
+        ),
+
+      selectedName:
+        document.getElementById(
+          "simSelectedName"
+        ),
+
+      selectedType:
+        document.getElementById(
+          "simSelectedType"
+        ),
+
+      selectedVelocity:
+        document.getElementById(
+          "simSelectedVelocity"
+        ),
+
+      selectedDistance:
+        document.getElementById(
+          "simSelectedDistance"
+        ),
+
+      selectedConfidence:
+        document.getElementById(
+          "simSelectedConfidence"
+        ),
+
+      telemetryVelocity:
+        document.getElementById(
+          "simTelemetryVelocity"
+        ),
+
+      telemetryConfidence:
+        document.getElementById(
+          "simTelemetryConfidence"
+        ),
+
+      reticleLabel:
+        document.getElementById(
+          "simReticleLabel"
+        )
+
+    };
+
+
+    if(elements.targetHud){
+
+      elements.targetHud.textContent =
+        sat.id;
+
+    }
+
+
+    if(elements.trackingHud){
+
+      elements.trackingHud.textContent =
+        "● TRACKING: " +
+        sat.id;
+
+    }
+
+
+    if(elements.telemetryTarget){
+
+      elements.telemetryTarget.textContent =
+        sat.id;
+
+    }
+
+
+    if(elements.selectedName){
+
+      elements.selectedName.textContent =
+        sat.id;
+
+    }
+
+
+    if(elements.selectedType){
+
+      elements.selectedType.textContent =
+        sat.type.toUpperCase();
+
+    }
+
+
+    if(elements.selectedVelocity){
+
+      elements.selectedVelocity.textContent =
+        sat.velocity;
+
+    }
+
+
+    if(elements.selectedDistance){
+
+      elements.selectedDistance.textContent =
+        sat.distance;
+
+    }
+
+
+    if(elements.selectedConfidence){
+
+      elements.selectedConfidence.textContent =
+        sat.confidence.toFixed(1) +
+        "%";
+
+    }
+
+
+    if(elements.telemetryVelocity){
+
+      elements.telemetryVelocity.textContent =
+        sat.velocity;
+
+    }
+
+
+    if(elements.telemetryConfidence){
+
+      elements.telemetryConfidence.textContent =
+        sat.confidence.toFixed(1) +
+        "%";
+
+    }
+
+
+    if(elements.reticleLabel){
+
+      elements.reticleLabel.textContent =
+        "AI LOCK · " +
+        sat.id;
+
+    }
+
+  }
+
+
+  /* =======================================================
+     MOVE SATELLITES
+     ======================================================= */
+
+  function updateSatellitePositions(time){
+
+    Object.values(satellites)
+      .forEach(function(sat,index){
+
+        const el =
+          getSatelliteElement(
+            sat.id
+          );
+
+
+        if(!el){
+          return;
+        }
+
+
+        /*
+          Keep the selected satellite fixed at the
+          camera centre while Center Selected is locked.
+          All other satellites continue their normal motion.
+        */
+
+        if(
+          simCenterLock &&
+          sat.id === selectedSatellite
+        ){
+
+          sat.x =
+            50;
+
+          sat.y =
+            50;
+
+
+          el.style.left =
+            "50%";
+
+          el.style.top =
+            "50%";
+
+          return;
+
+        }
+
+
+        const t =
+          time * 0.001;
+
+
+        let x =
+          sat.baseX +
+          Math.sin(
+            t * (0.35 + index * .045) +
+            sat.phase
+          ) * (5 + index * .6);
+
+
+        let y =
+          sat.baseY +
+          Math.cos(
+            t * (0.28 + index * .035) +
+            sat.phase
+          ) * (3.5 + index * .4);
+
+
+        /*
+          Additional orbital drift.
+        */
+
+        x +=
+          Math.sin(
+            t * .12 +
+            index
+          ) * 2.5;
+
+
+        y +=
+          Math.sin(
+            t * .16 +
+            index * 1.4
+          ) * 1.8;
+
+
+        x =
+          clamp(
+            x,
+            9,
+            91
+          );
+
+
+        y =
+          clamp(
+            y,
+            13,
+            69
+          );
+
+
+        sat.x =
+          x;
+
+        sat.y =
+          y;
+
+
+        el.style.left =
+          x + "%";
+
+        el.style.top =
+          y + "%";
+
+      });
+
+  }
+
+
+  /* =======================================================
+     UPDATE AI RETICLE
+     ======================================================= */
+
+  function updateTrackingReticle(){
+
+    const sat =
+      satellites[
+        selectedSatellite
+      ];
+
+
+    if(!sat || !reticle){
+      return;
+    }
+
+
+    /*
+      Reticle follows selected satellite.
+    */
+
+    reticle.style.left =
+      sat.x + "%";
+
+    reticle.style.top =
+      sat.y + "%";
+
+
+    /*
+      Calculate angular-style tracking error
+      from camera center.
+    */
+
+    const dx =
+      sat.x - 50;
+
+    const dy =
+      sat.y - 50;
+
+
+    const pixelError =
+      Math.sqrt(
+        dx * dx +
+        dy * dy
+      ) * 9.5;
+
+
+    const angularError =
+      Math.sqrt(
+        dx * dx +
+        dy * dy
+      ) * .035;
+
+
+    const confidence =
+      clamp(
+        sat.confidence -
+        angularError * 1.8,
+        82,
+        99.7
+      );
+
+
+    const errorText =
+      angularError.toFixed(2) +
+      "°";
+
+
+    const errorHud =
+      document.getElementById(
+        "simErrorHud"
+      );
+
+    if(errorHud){
+
+      errorHud.textContent =
+        errorText;
+
+    }
+
+
+    const confidenceHud =
+      document.getElementById(
+        "simConfidenceHud"
+      );
+
+    if(confidenceHud){
+
+      confidenceHud.textContent =
+        "AI CONFIDENCE: " +
+        confidence.toFixed(1) +
+        "%";
+
+    }
+
+
+    const telemetryConfidence =
+      document.getElementById(
+        "simTelemetryConfidence"
+      );
+
+    if(telemetryConfidence){
+
+      telemetryConfidence.textContent =
+        confidence.toFixed(1) +
+        "%";
+
+    }
+
+
+    /*
+      Update tracking state.
+    */
+
+    let state =
+      "TRACKING";
+
+
+    if(pixelError < 8){
+
+      state =
+        "FINE LOCK";
+
+    }
+    else if(pixelError < 25){
+
+      state =
+        "FINE ALIGN";
+
+    }
+    else if(pixelError < 65){
+
+      state =
+        "COARSE ALIGN";
+
+    }
+
+
+    const statusHud =
+      document.getElementById(
+        "simStatusHud"
+      );
+
+    if(statusHud){
+
+      statusHud.textContent =
+        state;
+
+    }
+
+
+    const stateTelemetry =
+      document.getElementById(
+        "simTelemetryState"
+      );
+
+    if(stateTelemetry){
+
+      stateTelemetry.textContent =
+        state;
+
+    }
+
+
+    /*
+      Reticle color.
+    */
+
+    if(state === "FINE LOCK"){
+
+      reticle.style.borderColor =
+        "#43f3aa";
+
+    }
+    else{
+
+      reticle.style.borderColor =
+        "#67dfff";
+
+    }
+
+
+    /*
+      Update line from satellite
+      to camera boresight.
+    */
+
+    const cameraRect =
+      camera.getBoundingClientRect();
+
+
+    const satEl =
+      getSatelliteElement(
+        selectedSatellite
+      );
+
+
+    const bore =
+      camera.querySelector(
+        ".sim-boresight"
+      );
+
+
+    if(
+      satEl &&
+      bore &&
+      trackLine
+    ){
+
+      const sr =
+        satEl.getBoundingClientRect();
+
+
+      const br =
+        bore.getBoundingClientRect();
+
+
+      const x1 =
+        sr.left +
+        sr.width / 2 -
+        cameraRect.left;
+
+
+      const y1 =
+        sr.top +
+        sr.height / 2 -
+        cameraRect.top;
+
+
+      const x2 =
+        br.left +
+        br.width / 2 -
+        cameraRect.left;
+
+
+      const y2 =
+        br.top +
+        br.height / 2 -
+        cameraRect.top;
+
+
+      trackLine.setAttribute(
+        "x1",
+        x1
+      );
+
+      trackLine.setAttribute(
+        "y1",
+        y1
+      );
+
+      trackLine.setAttribute(
+        "x2",
+        x2
+      );
+
+      trackLine.setAttribute(
+        "y2",
+        y2
+      );
+
+    }
+
+
+    updateSimTelemetryAndGraph(
+      sat,
+      angularError,
+      pixelError,
+      confidence,
+      state
+    );
+
+
+    const currentError =
+      document.getElementById(
+        "simLiveCurrentError"
+      );
+
+    if(currentError){
+
+      currentError.textContent =
+        pixelError.toFixed(1) + " px";
+
+    }
+
+  }
+
+
+  /* =======================================================
+     MAIN ANIMATION
+     ======================================================= */
+
+  function animationLoop(time){
+
+    if(simRunning){
+
+      updateSatellitePositions(
+        time
+      );
+
+      updateTrackingReticle();
+
+    }
+
+
+    const elapsed =
+      Math.floor(
+        (time - startTime) /
+        1000
+      );
+
+
+    const hours =
+      String(
+        Math.floor(
+          elapsed / 3600
+        )
+      ).padStart(2,"0");
+
+
+    const minutes =
+      String(
+        Math.floor(
+          (elapsed % 3600) /
+          60
+        )
+      ).padStart(2,"0");
+
+
+    const seconds =
+      String(
+        elapsed % 60
+      ).padStart(2,"0");
+
+
+    const clock =
+      document.getElementById(
+        "simClock"
+      );
+
+
+    if(clock){
+
+      clock.textContent =
+        hours +
+        ":" +
+        minutes +
+        ":" +
+        seconds;
+
+    }
+
+
+    animationFrame =
+      requestAnimationFrame(
+        animationLoop
+      );
+
+  }
+
+
+  /* =======================================================
+     START TRACKING
+     ======================================================= */
+
+  window.startSimSatelliteTracking =
+    async function(){
+
+      simRunning =
+        true;
+
+      startTime =
+        performance.now();
+
+      simReportId = null;
+      simLastReportSample = 0;
+      try{
+        const response = await fetch('/api/simulated-camera/start',{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({target_id:selectedSatellite})
+        });
+        const data = await response.json();
+        if(response.ok) simReportId = data.report_id;
+      }catch(error){}
+
+
+      const status =
+        document.getElementById(
+          "simStatusHud"
+        );
+
+      if(status){
+
+        status.textContent =
+          "TRACKING";
+
+      }
+
+
+      const state =
+        document.getElementById(
+          "simTelemetryState"
+        );
+
+      if(state){
+
+        state.textContent =
+          "TRACKING";
+
+      }
+
+    };
+
+
+  /* =======================================================
+     STOP TRACKING
+     ======================================================= */
+
+  window.stopSimSatelliteTracking =
+    async function(){
+
+      simRunning =
+        false;
+
+      if(simReportId){
+        try{
+          await fetch('/api/simulated-camera/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({report_id:simReportId})});
+        }catch(error){}
+        simReportId = null;
+      }
+
+
+      const status =
+        document.getElementById(
+          "simStatusHud"
+        );
+
+      if(status){
+
+        status.textContent =
+          "STOPPED";
+
+      }
+
+
+      const state =
+        document.getElementById(
+          "simTelemetryState"
+        );
+
+      if(state){
+
+        state.textContent =
+          "STANDBY";
+
+      }
+
+    };
+
+
+  /* =======================================================
+     CENTER SELECTED SATELLITE
+     ======================================================= */
+
+  window.centerSimTarget =
+    function(){
+
+      const sat =
+        satellites[
+          selectedSatellite
+        ];
+
+
+      if(!sat){
+        return;
+      }
+
+
+      /*
+        Lock the selected satellite so the normal
+        orbital movement cannot move it away from
+        the camera centre after centering.
+      */
+
+      simCenterLock =
+        true;
+
+
+      const startX =
+        sat.x;
+
+      const startY =
+        sat.y;
+
+      const targetX =
+        50;
+
+      const targetY =
+        50;
+
+
+      const start =
+        performance.now();
+
+      const duration =
+        700;
+
+
+      function animateCenter(now){
+
+        const progress =
+          clamp(
+            (now - start) /
+            duration,
+            0,
+            1
+          );
+
+
+        const ease =
+          1 -
+          Math.pow(
+            1 - progress,
+            3
+          );
+
+
+        sat.x =
+          startX +
+          (targetX - startX) *
+          ease;
+
+
+        sat.y =
+          startY +
+          (targetY - startY) *
+          ease;
+
+
+        const el =
+          getSatelliteElement(
+            selectedSatellite
+          );
+
+
+        if(el){
+
+          el.style.left =
+            sat.x + "%";
+
+          el.style.top =
+            sat.y + "%";
+
+        }
+
+
+        updateTrackingReticle();
+
+
+        if(progress < 1){
+
+          requestAnimationFrame(
+            animateCenter
+          );
+
+        }
+        else{
+
+          /*
+            Force the exact camera-centre position
+            when the centering animation completes.
+          */
+
+          sat.x =
+            50;
+
+          sat.y =
+            50;
+
+
+          if(el){
+
+            el.style.left =
+              "50%";
+
+            el.style.top =
+              "50%";
+
+          }
+
+
+          updateTrackingReticle();
+
+        }
+
+      }
+
+
+      requestAnimationFrame(
+        animateCenter
+      );
+
+    };
+
+
+  /* =======================================================
+     REACQUIRE
+     ======================================================= */
+
+  window.reacquireSimTarget =
+    function(){
+
+      const result =
+        document.getElementById(
+          "simSearchResult"
+        );
+
+
+      if(result){
+
+        result.textContent =
+          "AI reacquisition initiated for " +
+          selectedSatellite +
+          ".";
+
+        result.style.color =
+          "#1769e0";
+
+      }
+
+
+      const reticle =
+        document.getElementById(
+          "simAiReticle"
+        );
+
+
+      if(reticle){
+
+        reticle.style.width =
+          "135px";
+
+        reticle.style.height =
+          "135px";
+
+
+        setTimeout(function(){
+
+          reticle.style.width =
+            "105px";
+
+          reticle.style.height =
+            "105px";
+
+        },500);
+
+      }
+
+    };
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  updateSelectedSatelliteUI();
+
+  selectSimSatellite(
+    "SAT-7721"
+  );
+
+
+  animationFrame =
+    requestAnimationFrame(
+      animationLoop
+    );
+
+
+  window.addEventListener(
+    "resize",
+    function(){
+      drawSimTrackingErrorChart();
+    }
+  );
+
+  setTimeout(function(){
+    resetSimErrorHistory(selectedSatellite);
+  },100);
+
+})();
+
+</script>
+
+
+<!-- =========================================================
+     EXISTING TRACKING MODE SWITCH
+     ========================================================= -->
+
+<script>
+
+function showTrackingMode(mode){
+
+  const sim =
+    document.getElementById(
+      "simPanel"
+    );
+
+  const live =
+    document.getElementById(
+      "liveAiPanel"
+    );
+
+  const tabSim =
+    document.getElementById(
+      "tabSim"
+    );
+
+  const tabLive =
+    document.getElementById(
+      "tabLive"
+    );
+
+
+  if(mode === "live"){
+
+    sim.style.display =
+      "none";
+
+    live.style.display =
+      "block";
+
+    tabSim.classList.remove(
+      "active"
+    );
+
+    tabLive.classList.add(
+      "active"
+    );
+
+  }
+  else{
+
+    sim.style.display =
+      "block";
+
+    live.style.display =
+      "none";
+
+    tabLive.classList.remove(
+      "active"
+    );
+
+    tabSim.classList.add(
+      "active"
+    );
+
+  }
+
+}
+
+</script>
+
+{% endblock %}<!-- এটা একটি HTML comment -->
