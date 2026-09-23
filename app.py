@@ -1309,31 +1309,58 @@ def api_settings_save():
 
 @app.get('/video_feed')
 def video_feed():
-    """Compatibility MJPEG feed using the latest browser-submitted frame."""
     def generate():
-        import time as _t
         while True:
             jpg = LIVE_CAMERA.get_jpeg()
             if jpg is not None:
                 yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + jpg + b'\r\n')
             else:
-                _t.sleep(0.05)
+                # camera thread may not have produced a frame yet
+                import time as _t; _t.sleep(0.05)
     return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.post('/api/live/frame')
 def api_live_frame():
-    """Receive a JPEG frame from the user's browser webcam."""
+    """Receive one JPEG frame from the user's browser webcam."""
     if not LIVE_ENGINE.is_running:
-        return jsonify({'ok': False, 'error': 'Live AI tracking is not running'}), 409
+        return jsonify({
+            'ok': False,
+            'error': 'Live AI tracking is not running'
+        }), 409
+
     raw = request.get_data()
     if not raw:
-        return jsonify({'ok': False, 'error': 'Empty camera frame'}), 400
-    import numpy as np
-    import cv2
-    frame = cv2.imdecode(np.frombuffer(raw, dtype=np.uint8), cv2.IMREAD_COLOR)
+        return jsonify({
+            'ok': False,
+            'error': 'Empty camera frame'
+        }), 400
+
+    try:
+        import numpy as np
+        import cv2
+
+        frame = cv2.imdecode(
+            np.frombuffer(raw, dtype=np.uint8),
+            cv2.IMREAD_COLOR
+        )
+    except Exception as exc:
+        return jsonify({
+            'ok': False,
+            'error': f'Unable to decode camera frame: {exc}'
+        }), 400
+
     if frame is None:
-        return jsonify({'ok': False, 'error': 'Invalid JPEG camera frame'}), 400
-    LIVE_CAMERA.submit_frame(frame)
+        return jsonify({
+            'ok': False,
+            'error': 'Invalid JPEG camera frame'
+        }), 400
+
+    if not LIVE_CAMERA.submit_frame(frame):
+        return jsonify({
+            'ok': False,
+            'error': LIVE_CAMERA.error or 'Unable to accept camera frame'
+        }), 500
+
     return jsonify({'ok': True})
 
 @app.post('/api/simulated-camera/start')
@@ -1398,7 +1425,7 @@ def api_live_start():
     first = LiveDetection.query.order_by(LiveDetection.id.desc()).first()
     report = LiveReport(
         detector=LIVE_ENGINE.active_detector or 'opencv',
-        camera_mode=LIVE_CAMERA.mode or 'synthetic',
+        camera_mode=LIVE_CAMERA.mode or 'browser',
         first_detection_id=(first.id + 1) if first else 1,
         status='ACTIVE'
     )
@@ -1406,7 +1433,7 @@ def api_live_start():
     db.session.flush()
     LIVE_REPORT_ID = report.id
 
-    event('SYSTEM', f'Live physical camera tracking started · detector: {LIVE_ENGINE.active_detector} · camera: {LIVE_CAMERA.mode}', 'SUCCESS')
+    event('SYSTEM', f'Live browser camera tracking started · detector: {LIVE_ENGINE.active_detector} · camera: {LIVE_CAMERA.mode}', 'SUCCESS')
     db.session.commit()
     return jsonify({'ok': True, 'running': True, 'report_id': report.id,
                     'detector': LIVE_ENGINE.active_detector, 'yolo_available': LIVE_ENGINE.yolo_available,
