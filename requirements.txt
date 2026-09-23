@@ -19,3 +19,4 @@ numpy
 
 # Required for YOLO + ByteTrack in Live AI Camera
 ultralytics
+gunicorn
