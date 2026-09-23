@@ -2,6 +2,12 @@
    PHYSICAL WEBCAM LIVE AI CAMERA
    YOLO + ByteTrack with OpenCV motion fallback
 
+   Browser webcam support:
+   Browser getUserMedia()
+   -> JPEG frames
+   -> POST /api/live/frame
+   -> Flask / LiveEngine
+
    Tracking Error vs Time graph
    ========================================================= */
 
@@ -12,6 +18,15 @@
   let socket = null;
   let initialized = false;
   let running = false;
+
+  let cameraStream = null;
+  let cameraCaptureCanvas = null;
+  let cameraCaptureContext = null;
+  let cameraUploadTimer = null;
+  let cameraUploadBusy = false;
+
+  const CAMERA_UPLOAD_INTERVAL = 120;
+  const CAMERA_JPEG_QUALITY = 0.75;
 
   const MAX = 60;
 
@@ -320,226 +335,584 @@
 
 
   /* =========================================================
-     START LIVE AI
+     BROWSER WEBCAM
      ========================================================= */
 
-  window.startLiveAI = function(){
+  async function openBrowserCamera(){
 
-    fetch(
-      '/api/live/start',
-      {
-        method:'POST'
+    const video = $('liveFeedVideo');
+
+    if(!video){
+
+      throw new Error(
+        'Camera preview element #liveFeedVideo not found'
+      );
+
+    }
+
+
+    if(
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ){
+
+      throw new Error(
+        'Browser camera API is not supported'
+      );
+
+    }
+
+
+    cameraStream =
+      await navigator.mediaDevices.getUserMedia({
+
+        video:{
+          width:{
+            ideal:960
+          },
+
+          height:{
+            ideal:540
+          },
+
+          facingMode:'user'
+        },
+
+        audio:false
+
+      });
+
+
+    video.srcObject =
+      cameraStream;
+
+    video.muted =
+      true;
+
+    video.autoplay =
+      true;
+
+    video.playsInline =
+      true;
+
+
+    await video.play();
+
+
+    return true;
+
+  }
+
+
+  function stopBrowserCamera(){
+
+    if(cameraUploadTimer){
+
+      clearTimeout(
+        cameraUploadTimer
+      );
+
+      cameraUploadTimer = null;
+
+    }
+
+
+    cameraUploadBusy =
+      false;
+
+
+    if(cameraStream){
+
+      cameraStream
+        .getTracks()
+        .forEach(
+          track =>
+            track.stop()
+        );
+
+      cameraStream =
+        null;
+
+    }
+
+
+    const video =
+      $('liveFeedVideo');
+
+
+    if(video){
+
+      video.pause();
+
+      video.srcObject =
+        null;
+
+    }
+
+
+    cameraCaptureCanvas =
+      null;
+
+    cameraCaptureContext =
+      null;
+
+  }
+
+
+  function scheduleCameraUpload(){
+
+    if(
+      !running ||
+      !cameraStream
+    ){
+
+      return;
+
+    }
+
+
+    if(cameraUploadTimer){
+
+      return;
+
+    }
+
+
+    cameraUploadTimer =
+      setTimeout(
+        async function(){
+
+          cameraUploadTimer =
+            null;
+
+
+          await uploadBrowserCameraFrame();
+
+
+          scheduleCameraUpload();
+
+        },
+        CAMERA_UPLOAD_INTERVAL
+      );
+
+  }
+
+
+  async function uploadBrowserCameraFrame(){
+
+    if(
+      !running ||
+      !cameraStream ||
+      cameraUploadBusy
+    ){
+
+      return;
+
+    }
+
+
+    const video =
+      $('liveFeedVideo');
+
+
+    if(!video){
+
+      return;
+
+    }
+
+
+    if(
+      video.readyState <
+      HTMLMediaElement.HAVE_CURRENT_DATA
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      !video.videoWidth ||
+      !video.videoHeight
+    ){
+
+      return;
+
+    }
+
+
+    cameraUploadBusy =
+      true;
+
+
+    try{
+
+      if(!cameraCaptureCanvas){
+
+        cameraCaptureCanvas =
+          document.createElement(
+            'canvas'
+          );
+
+        cameraCaptureContext =
+          cameraCaptureCanvas.getContext(
+            '2d'
+          );
+
       }
-    )
-
-    .then(async r => {
-
-      const s = await r.json();
 
 
-      if(
-        !r.ok ||
-        !s.ok
-      ){
+      const canvas =
+        cameraCaptureCanvas;
+
+      const ctx =
+        cameraCaptureContext;
+
+
+      canvas.width =
+        video.videoWidth;
+
+      canvas.height =
+        video.videoHeight;
+
+
+      ctx.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+
+      const blob =
+        await new Promise(
+          resolve =>
+            canvas.toBlob(
+              resolve,
+              'image/jpeg',
+              CAMERA_JPEG_QUALITY
+            )
+        );
+
+
+      if(!blob){
+
+        return;
+
+      }
+
+
+      const response =
+        await fetch(
+          '/api/live/frame',
+          {
+            method:'POST',
+
+            headers:{
+              'Content-Type':
+                'image/jpeg'
+            },
+
+            body:blob,
+
+            cache:'no-store'
+          }
+        );
+
+
+      if(!response.ok){
+
+        let message =
+          'Camera frame upload failed';
+
+
+        try{
+
+          const data =
+            await response.json();
+
+
+          if(
+            data &&
+            data.error
+          ){
+
+            message =
+              data.error;
+
+          }
+
+        }catch(_){}
+
 
         throw new Error(
-          s.error ||
-          'Unable to open the webcam'
+          message
         );
 
       }
 
+    }catch(error){
 
-      running = true;
+      console.error(
+        'Browser camera frame error:',
+        error
+      );
+
+    }finally{
+
+      cameraUploadBusy =
+        false;
+
+    }
+
+  }
 
 
-      const img =
-        $('liveFeedImg');
+  /* =========================================================
+     START LIVE AI
+     ========================================================= */
+
+  window.startLiveAI =
+    async function(){
+
+      try{
+
+        /*
+         * Open the user's browser webcam.
+         */
+        await openBrowserCamera();
 
 
-      if(img){
+        /*
+         * Start the Flask LiveEngine.
+         */
+        const response =
+          await fetch(
+            '/api/live/start',
+            {
+              method:'POST'
+            }
+          );
 
-        img.src =
-          '/video_feed?t=' +
-          Date.now();
+
+        const s =
+          await response.json();
 
 
-        img.onload = function(){
+        if(
+          !response.ok ||
+          !s.ok
+        ){
 
-          resizeLiveOverlay();
+          throw new Error(
+            s.error ||
+            'Unable to start live AI tracking'
+          );
 
-          drawChart();
+        }
 
-        };
+
+        running =
+          true;
+
+
+        /*
+         * Start browser frame upload.
+         */
+        scheduleCameraUpload();
+
+
+        const empty =
+          $('liveEmptyMsg');
+
+
+        if(empty){
+
+          empty.style.display =
+            'none';
+
+        }
+
+
+        badge(
+          'liveRunBadge',
+          'RUNNING'
+        );
+
+
+        const assistantStatus =
+          $('assistantStatus');
+
+
+        if(assistantStatus){
+
+          assistantStatus.textContent =
+            'WAITING';
+
+          assistantStatus.style.color =
+            '#1769e0';
+
+        }
+
+
+        badge(
+          'liveDetectorBadge',
+          'DETECTOR: ' +
+          String(
+            s.detector || '—'
+          ).toUpperCase()
+        );
+
+
+        badge(
+          'liveCameraModeBadge',
+          'CAMERA: ' +
+          String(
+            s.camera_mode ||
+            'BROWSER'
+          ).toUpperCase()
+        );
+
+
+        updateAssistant({
+          found:false
+        });
+
+
+        updateChartTitle();
+
+        drawChart();
+
+
+      }catch(error){
+
+        console.error(
+          'Live AI start error:',
+          error
+        );
+
+
+        running =
+          false;
+
+
+        stopBrowserCamera();
+
+
+        /*
+         * Stop backend if it was already started.
+         */
+        try{
+
+          await fetch(
+            '/api/live/stop',
+            {
+              method:'POST'
+            }
+          );
+
+        }catch(_){}
+
+
+        const empty =
+          $('liveEmptyMsg');
+
+
+        if(empty){
+
+          empty.style.display =
+            'flex';
+
+
+          empty.textContent =
+            'WEBCAM ERROR: ' +
+            error.message +
+            ' | Allow browser camera permission and try again.';
+
+        }
+
+
+        badge(
+          'liveRunBadge',
+          'CAMERA ERROR'
+        );
+
+
+        updateAssistant({
+          found:false
+        });
 
       }
 
-
-      const empty =
-        $('liveEmptyMsg');
-
-
-      if(empty){
-
-        empty.style.display =
-          'none';
-
-      }
-
-
-      badge(
-        'liveRunBadge',
-        'RUNNING'
-      );
-
-
-      const assistantStatus =
-        $('assistantStatus');
-
-
-      if(assistantStatus){
-
-        assistantStatus.textContent =
-          'WAITING';
-
-        assistantStatus.style.color =
-          '#1769e0';
-
-      }
-
-
-      badge(
-        'liveDetectorBadge',
-        'DETECTOR: ' +
-        String(
-          s.detector || '—'
-        ).toUpperCase()
-      );
-
-
-      badge(
-        'liveCameraModeBadge',
-        'CAMERA: ' +
-        String(
-          s.camera_mode || '—'
-        ).toUpperCase()
-      );
-
-
-      updateAssistant({
-        found:false
-      });
-
-
-      updateChartTitle();
-
-      drawChart();
-
-    })
-
-
-    .catch(e => {
-
-      running = false;
-
-
-      const empty =
-        $('liveEmptyMsg');
-
-
-      if(empty){
-
-        empty.style.display =
-          'flex';
-
-        empty.textContent =
-          'WEBCAM ERROR: ' +
-          e.message +
-          ' | Close Camera/Teams/Zoom and allow Windows camera access.';
-
-      }
-
-
-      badge(
-        'liveRunBadge',
-        'CAMERA ERROR'
-      );
-
-
-      updateAssistant({
-        found:false
-      });
-
-    });
-
-  };
+    };
 
 
   /* =========================================================
      STOP LIVE AI
      ========================================================= */
 
-  window.stopLiveAI = function(){
+  window.stopLiveAI =
+    function(){
 
-    fetch(
-      '/api/live/stop',
-      {
-        method:'POST'
-      }
-    )
+      fetch(
+        '/api/live/stop',
+        {
+          method:'POST'
+        }
+      )
 
-    .finally(() => {
+      .catch(
+        () => {}
+      )
 
-      running = false;
+      .finally(
+        () => {
 
-
-      const img =
-        $('liveFeedImg');
-
-
-      if(img){
-
-        img.removeAttribute(
-          'src'
-        );
-
-      }
+          running =
+            false;
 
 
-      const empty =
-        $('liveEmptyMsg');
+          stopBrowserCamera();
 
 
-      if(empty){
-
-        empty.style.display =
-          'flex';
-
-        empty.textContent =
-          'Click "Start Live AI Tracking" to open the physical webcam.';
-
-      }
+          const empty =
+            $('liveEmptyMsg');
 
 
-      badge(
-        'liveRunBadge',
-        'STOPPED'
+          if(empty){
+
+            empty.style.display =
+              'flex';
+
+
+            empty.textContent =
+              'Click "Start Live AI Tracking" to open the browser webcam.';
+
+          }
+
+
+          badge(
+            'liveRunBadge',
+            'STOPPED'
+          );
+
+
+          clearOverlay();
+
+
+          updateAssistant({
+            found:false
+          });
+
+
+          drawChart();
+
+        }
       );
 
-
-      clearOverlay();
-
-
-      updateAssistant({
-        found:false
-      });
-
-
-      drawChart();
-
-    });
-
-  };
+    };
 
 
   /* =========================================================
@@ -772,18 +1145,19 @@
 
   function resizeLiveOverlay(){
 
-    const img =
-      $('liveFeedImg');
+    const video =
+      $('liveFeedVideo');
+
 
     const canvas =
       $('liveOverlay');
 
 
     if(
-      !img ||
+      !video ||
       !canvas ||
-      !img.clientWidth ||
-      !img.clientHeight
+      !video.clientWidth ||
+      !video.clientHeight
     ){
 
       return;
@@ -797,11 +1171,11 @@
 
 
     const w =
-      img.clientWidth;
+      video.clientWidth;
 
 
     const h =
-      img.clientHeight;
+      video.clientHeight;
 
 
     canvas.width =
@@ -846,8 +1220,8 @@
 
   function drawOverlay(d){
 
-    const img =
-      $('liveFeedImg');
+    const video =
+      $('liveFeedVideo');
 
 
     const canvas =
@@ -855,10 +1229,10 @@
 
 
     if(
-      !img ||
+      !video ||
       !canvas ||
-      !img.clientWidth ||
-      !img.clientHeight
+      !video.clientWidth ||
+      !video.clientHeight
     ){
 
       return;
@@ -872,11 +1246,11 @@
 
 
     const w =
-      img.clientWidth;
+      video.clientWidth;
 
 
     const h =
-      img.clientHeight;
+      video.clientHeight;
 
 
     canvas.width =
@@ -2719,18 +3093,18 @@
 
 
   /* =========================================================
-     CAMERA IMAGE RESIZE
+     CAMERA VIDEO RESIZE
      ========================================================= */
 
   const observeCamera =
     function(){
 
-      const img =
-        $('liveFeedImg');
+      const video =
+        $('liveFeedVideo');
 
 
       if(
-        !img ||
+        !video ||
         typeof ResizeObserver ===
         'undefined'
       ){
@@ -2750,7 +3124,7 @@
         );
 
 
-      observer.observe(img);
+      observer.observe(video);
 
     };
 
