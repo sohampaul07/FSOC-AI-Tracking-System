@@ -2,6 +2,7 @@ Flask
 Flask-SQLAlchemy
 SQLAlchemy
 reportlab
+gunicorn
 
 # --- Live AI camera pipeline ---
 Flask-SocketIO
@@ -19,4 +20,3 @@ numpy
 
 # Required for YOLO + ByteTrack in Live AI Camera
 ultralytics
-gunicorn
