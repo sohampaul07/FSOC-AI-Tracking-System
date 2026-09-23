@@ -1327,11 +1327,17 @@
   overflow:hidden;
 }
 
+ .live-camera-wrap video,
 .live-camera-wrap img{
   width:100%;
   height:100%;
   object-fit:cover;
   display:block;
+  background:#07111f;
+}
+
+.live-camera-wrap video{
+  transform:scaleX(1);
 }
 
 .live-camera-wrap canvas{
@@ -2974,11 +2980,13 @@
           id="liveCameraWrap"
         >
 
-          <img
-            id="liveFeedImg"
-            src=""
-            alt="Live camera feed"
-          >
+          <video
+            id="liveFeedVideo"
+            autoplay
+            playsinline
+            muted
+            aria-label="Live browser webcam preview"
+          ></video>
 
 
           <canvas
@@ -2990,7 +2998,7 @@
             class="live-empty-msg"
             id="liveEmptyMsg"
           >
-            Click "Start Live AI Tracking" to open the camera / synthetic test-beacon feed and begin OpenCV + YOLO detection.
+            Click "Start Live AI Tracking" to allow browser webcam access and begin OpenCV + YOLO detection.
           </div>
 
         </div>
