@@ -2,7 +2,6 @@ Flask
 Flask-SQLAlchemy
 SQLAlchemy
 reportlab
-gunicorn
 
 # --- Live AI camera pipeline ---
 Flask-SocketIO
