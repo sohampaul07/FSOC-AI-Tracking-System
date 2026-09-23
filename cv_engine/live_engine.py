@@ -53,8 +53,8 @@ class LiveEngine:
     def start(self):
         if self._running:
             return
-        if not self.camera.start():
-            raise RuntimeError(self.camera.error or 'Unable to open webcam')
+        if not self.camera.start_browser():
+            raise RuntimeError(self.camera.error or 'Unable to initialize browser camera input')
         self._tracker.reset()
         self._sx = self._sy = self._px = self._py = self._pt = None
         self._last_seen = None

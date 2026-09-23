@@ -17,6 +17,27 @@ class VideoCamera:
         self._running = False
         self._thread = None
 
+    def start_browser(self):
+        """Start browser-fed camera mode. The webcam itself stays on the user's browser."""
+        self.stop()
+        self.mode = 'browser'
+        self.error = None
+        self._running = True
+        return True
+
+    def submit_frame(self, frame):
+        """Accept a BGR frame received from the browser."""
+        if frame is None:
+            return False
+        try:
+            frame = cv2.resize(frame, (self.width, self.height))
+        except Exception:
+            return False
+        with self._lock:
+            self._frame = frame
+        self.error = None
+        return True
+
     def _open(self):
         candidates = [
             lambda: cv2.VideoCapture(self.cam_index, cv2.CAP_DSHOW),
